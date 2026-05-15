@@ -346,7 +346,7 @@ private fun PortraitLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNav
                 Text("直接播放音频", fontWeight = FontWeight.Medium)
             }
         }
-        Spacer(modifier = Modifier.height(80.dp)) // room for floating mini player
+        Spacer(modifier = Modifier.height(110.dp)) // room for floating mini player
     }
 }
 
@@ -415,15 +415,15 @@ private fun FloatingHearts() {
                 label = "heart_opacity_${heart.xFraction}"
             )
             Canvas(
-                modifier = Modifier.fillMaxSize().offset(x = ((heart.xFraction - 0.5f) * 300).dp, y = ((animY - 0.5f) * 500).dp).size((heart.sizeDp * 2).dp)
+                modifier = Modifier.fillMaxSize().offset(x = ((heart.xFraction - 0.5f) * 300).dp, y = ((animY - 0.5f) * 500).dp).size((heart.sizeDp * 2.8f).dp)
             ) {
                 val w = size.width
                 val h = size.height
+                val cpx = w * 0.42f
                 val path = Path().apply {
-                    // Proper heart shape using cubic beziers
-                    moveTo(w / 2, h * 0.85f)
-                    cubicTo(w * 0.05f, h * 0.5f, w * 0.05f, h * 0.1f, w / 2, h * 0.25f)
-                    cubicTo(w * 0.95f, h * 0.1f, w * 0.95f, h * 0.5f, w / 2, h * 0.85f)
+                    moveTo(w / 2, h * 0.82f)
+                    cubicTo(0f, h * 0.48f, 0f, h * 0.12f, w / 2, h * 0.2f)
+                    cubicTo(w.toFloat(), h * 0.12f, w.toFloat(), h * 0.48f, w / 2, h * 0.82f)
                     close()
                 }
                 drawPath(path, Color(0xFFE91E63).copy(alpha = opacity))

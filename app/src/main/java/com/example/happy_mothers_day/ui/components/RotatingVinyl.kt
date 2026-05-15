@@ -109,20 +109,18 @@ private fun DrawScope.drawVinylDisc(totalSize: Float) {
 private fun DrawScope.drawDefaultHeart(totalSize: Float) {
     val cx = totalSize / 2
     val cy = totalSize / 2
-    val s = totalSize * 0.22f
-    val hr = s * 0.24f
+    val hs = totalSize * 0.16f  // heart size
 
-    // White circular background for the heart
-    drawCircle(Color.White.copy(alpha = 0.9f), s / 2, Offset(cx, cy))
+    // White circular background
+    drawCircle(Color.White.copy(alpha = 0.9f), hs * 0.7f, Offset(cx, cy))
 
-    // Heart using two overlapping circles + triangle
-    drawCircle(Color(0xFFE91E63), hr, Offset(cx - hr * 0.75f, cy - hr * 0.3f))
-    drawCircle(Color(0xFFE91E63), hr, Offset(cx + hr * 0.75f, cy - hr * 0.3f))
-
+    // Smooth bezier heart
+    val hw = hs
+    val hh = hs * 0.95f
     val path = Path().apply {
-        moveTo(cx - hr * 1.6f, cy)
-        lineTo(cx + hr * 1.6f, cy)
-        lineTo(cx, cy + hr * 1.7f)
+        moveTo(cx, cy + hh * 0.5f)
+        cubicTo(cx - hw * 0.45f, cy + hh * 0.05f, cx - hw * 0.45f, cy - hh * 0.4f, cx, cy - hh * 0.15f)
+        cubicTo(cx + hw * 0.45f, cy - hh * 0.4f, cx + hw * 0.45f, cy + hh * 0.05f, cx, cy + hh * 0.5f)
         close()
     }
     drawPath(path, Color(0xFFE91E63))
