@@ -62,7 +62,7 @@ private fun rememberVinylRotation(isPlaying: Boolean): State<Float> {
         animationSpec = if (isPlaying) {
             infiniteRepeatable(animation = tween<Float>(5000, easing = LinearEasing), repeatMode = RepeatMode.Restart)
         } else {
-            infiniteRepeatable(animation = tween<Float>(0, easing = LinearEasing), repeatMode = RepeatMode.Restart)
+            infiniteRepeatable(animation = tween<Float>(1, easing = LinearEasing), repeatMode = RepeatMode.Restart)
         },
         label = "rotation"
     )

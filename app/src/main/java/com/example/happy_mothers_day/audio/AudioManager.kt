@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.MediaPlayer
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import com.example.happy_mothers_day.R
 import java.io.File
 
@@ -29,10 +30,12 @@ object AudioManager {
 
     var onStateChanged: (() -> Unit)? = null
 
-    /** Post notification to main thread — safe from any thread */
+    /** Thread-safe notification */
     private fun notifyChanged() {
-        mainHandler.post {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
             onStateChanged?.invoke()
+        } else {
+            mainHandler.post { onStateChanged?.invoke() }
         }
     }
 
@@ -68,8 +71,13 @@ object AudioManager {
             mediaPlayer = mp
             duration = mp.duration
             currentPositionMs = 0
-            mp.start()
-            isPlaying = true
+            try {
+                mp.start()
+                isPlaying = true
+            } catch (e: Exception) {
+                Log.e("AudioManager", "start failed", e)
+                hasError = true
+            }
         }
         notifyChanged()
     }
