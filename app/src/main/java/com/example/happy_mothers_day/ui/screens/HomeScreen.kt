@@ -30,12 +30,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -48,6 +50,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -89,6 +92,7 @@ fun HomeScreen(
 ) {
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     var menuExpanded by remember { mutableStateOf(false) }
+    var showAbout by remember { mutableStateOf(false) }
     val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
     // --- Mini player state ---
@@ -143,14 +147,41 @@ fun HomeScreen(
                         leadingIcon = { Icon(Icons.Filled.MusicNote, contentDescription = null) }
                     )
                     DropdownMenuItem(
+                        text = { Text("读取线圈数据") },
+                        onClick = { menuExpanded = false; onNavigateToTagReader() },
+                        leadingIcon = { Icon(Icons.Filled.Nfc, contentDescription = null) }
+                    )
+                    DropdownMenuItem(
                         text = { Text("设置") },
                         onClick = { menuExpanded = false; onNavigateToSettings() },
                         leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null) }
                     )
                     DropdownMenuItem(
-                        text = { Text("读取线圈数据") },
-                        onClick = { menuExpanded = false; onNavigateToTagReader() },
-                        leadingIcon = { Icon(Icons.Filled.Nfc, contentDescription = null) }
+                        text = { Text("关于此APP") },
+                        onClick = { menuExpanded = false; showAbout = true },
+                        leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null) }
+                    )
+                }
+
+                // About dialog
+                if (showAbout) {
+                    AlertDialog(
+                        onDismissRequest = { showAbout = false },
+                        title = { Text("关于此APP", fontWeight = FontWeight.Bold, color = DeepRose) },
+                        text = {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("母亲节快乐", style = MaterialTheme.typography.titleMedium.copy(color = RosePink, fontWeight = FontWeight.Medium))
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("这是献给妈妈的母亲节礼物", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("Happy Mother's Day", style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray), textAlign = TextAlign.Center)
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text("作者: wxd", style = MaterialTheme.typography.bodySmall.copy(color = DeepRose, fontWeight = FontWeight.Medium))
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(onClick = { showAbout = false }) { Text("好的") }
+                        }
                     )
                 }
             }
@@ -162,9 +193,9 @@ fun HomeScreen(
             PortraitLayout(isNfcAvailable, isNfcEnabled, onNavigateToPlayer)
         }
 
-        // Mini player at bottom
+        // Mini player — floating above bottom
         if (miniVisible) {
-            Box(modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter).zIndex(99f)) {
+            Box(modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter).padding(horizontal = 24.dp, vertical = 12.dp).zIndex(99f)) {
                 MiniPlayer(
                 fileName = miniFileName,
                 isPlaying = miniPlaying,
@@ -208,12 +239,13 @@ private fun MiniPlayer(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(12.dp, RoundedCornerShape(20.dp))
             .clickable(
                 enabled = !seekDrag,
                 onClickLabel = "查看播放详情"
             ) { onNavigateToPlayer() },
-        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.92f))
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.94f))
     ) {
         Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
             // Title row
@@ -314,7 +346,7 @@ private fun PortraitLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNav
                 Text("直接播放音频", fontWeight = FontWeight.Medium)
             }
         }
-        Spacer(modifier = Modifier.height(100.dp)) // room for mini player
+        Spacer(modifier = Modifier.height(80.dp)) // room for floating mini player
     }
 }
 
@@ -385,10 +417,15 @@ private fun FloatingHearts() {
             Canvas(
                 modifier = Modifier.fillMaxSize().offset(x = ((heart.xFraction - 0.5f) * 300).dp, y = ((animY - 0.5f) * 500).dp).size((heart.sizeDp * 2).dp)
             ) {
-                val hr = size.width / 2; val cx = center.x; val cy = center.y
-                drawCircle(Color(0xFFE91E63).copy(alpha = opacity), hr * 0.45f, Offset(cx - hr * 0.32f, cy - hr * 0.15f))
-                drawCircle(Color(0xFFE91E63).copy(alpha = opacity), hr * 0.45f, Offset(cx + hr * 0.32f, cy - hr * 0.15f))
-                val path = Path().apply { moveTo(cx - hr * 0.7f, cy - hr * 0.05f); lineTo(cx + hr * 0.7f, cy - hr * 0.05f); lineTo(cx, cy + hr * 0.7f); close() }
+                val w = size.width
+                val h = size.height
+                val path = Path().apply {
+                    // Proper heart shape using cubic beziers
+                    moveTo(w / 2, h * 0.85f)
+                    cubicTo(w * 0.05f, h * 0.5f, w * 0.05f, h * 0.1f, w / 2, h * 0.25f)
+                    cubicTo(w * 0.95f, h * 0.1f, w * 0.95f, h * 0.5f, w / 2, h * 0.85f)
+                    close()
+                }
                 drawPath(path, Color(0xFFE91E63).copy(alpha = opacity))
             }
         }

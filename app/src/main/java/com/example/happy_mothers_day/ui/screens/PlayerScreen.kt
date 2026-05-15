@@ -5,6 +5,9 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -123,6 +126,8 @@ fun PlayerScreen(
         AudioManager.seekToFraction(seekPosition)
     }
 
+    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -138,10 +143,13 @@ fun PlayerScreen(
             PortraitPlayer(isPlaying, hasError, audioUri, duration, currentPosition, seekPosition, isSeeking, onPlayPause, onSeekStart, onSeek, onSeekEnd)
         }
 
-        // Back button on top
+        // Back button on top (with status bar offset)
         IconButton(
             onClick = { onNavigateBack() },
-            modifier = Modifier.padding(if (isLandscape) 12.dp else 16.dp).align(Alignment.TopStart).zIndex(10f)
+            modifier = Modifier.padding(
+                top = statusBarHeight + if (isLandscape) 4.dp else 8.dp,
+                start = if (isLandscape) 12.dp else 16.dp
+            ).align(Alignment.TopStart).zIndex(10f)
         ) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回", tint = RosePinkLight, modifier = Modifier.size(if (isLandscape) 24.dp else 28.dp))
         }

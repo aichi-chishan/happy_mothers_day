@@ -120,31 +120,28 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    audioReplacer.launch(arrayOf("audio/*"))
-                }) { Text("更换音频") }
+                    scanningNfc = true
+                    nfcHelper.captureNextTag { newTagId ->
+                        val normalized = newTagId.lowercase()
+                        if (normalized == "04669e70d32a81" || storage.getDefaultTagId()?.lowercase() == normalized || (storage.getMapping(newTagId) != null && storage.getMapping(newTagId)!!.tagId != entry.tagId)) {
+                            scanningNfc = false
+                            editingEntry = null
+                        } else {
+                            val oldTagId = entry.tagId
+                            storage.removeMapping(oldTagId)
+                            storage.saveMapping(newTagId, entry.audioUri, entry.fileName)
+                            refreshMappings()
+                            scanningNfc = false
+                            editingEntry = null
+                        }
+                    }
+                }) { Text(if (scanningNfc) "扫描中..." else "更换NFC") }
             },
             dismissButton = {
                 Row {
                     TextButton(onClick = {
-                        scanningNfc = true
-                        nfcHelper.captureNextTag { newTagId ->
-                            val normalized = newTagId.lowercase()
-                            // Check duplicate
-                            if (normalized == "04669e70d32a81" || storage.getDefaultTagId()?.lowercase() == normalized || (storage.getMapping(newTagId) != null && storage.getMapping(newTagId)!!.tagId != entry.tagId)) {
-                                scanningNfc = false
-                                editingEntry = null
-                            } else {
-                                val oldTagId = entry.tagId
-                                storage.removeMapping(oldTagId)
-                                storage.saveMapping(newTagId, entry.audioUri, entry.fileName)
-                                refreshMappings()
-                                scanningNfc = false
-                                editingEntry = null
-                            }
-                        }
-                    }) {
-                        Text(if (scanningNfc) "扫描中..." else "更换NFC")
-                    }
+                        audioReplacer.launch(arrayOf("audio/*"))
+                    }) { Text("更换音频") }
                     Spacer(modifier = Modifier.width(8.dp))
                     TextButton(onClick = { editingEntry = null; scanningNfc = false }) { Text("取消") }
                 }
