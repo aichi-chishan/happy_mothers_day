@@ -1,7 +1,6 @@
 package com.example.happy_mothers_day
 
 import android.content.Intent
-import android.nfc.NfcAdapter
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -13,6 +12,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -20,6 +22,7 @@ import com.example.happy_mothers_day.nfc.NfcHelper
 import com.example.happy_mothers_day.storage.TagAudioStorage
 import com.example.happy_mothers_day.ui.screens.HomeScreen
 import com.example.happy_mothers_day.ui.screens.NfcLearningScreen
+import com.example.happy_mothers_day.ui.screens.NfcTagReaderScreen
 import com.example.happy_mothers_day.ui.screens.PlayerScreen
 import com.example.happy_mothers_day.ui.screens.SettingsScreen
 import com.example.happy_mothers_day.ui.theme.HappyMothersDayTheme
@@ -46,7 +49,6 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Handle NFC tag discovered while activity was being created
         intent?.let { handleNfcIntent(it) }
     }
 
@@ -62,7 +64,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        // System dispatched NFC tag via intent (e.g. during NFC toggle)
         handleNfcIntent(intent)
     }
 
@@ -90,14 +91,37 @@ fun MainApp(
     val navController = rememberNavController()
     val context = LocalContext.current
     val tagStorage = remember { TagAudioStorage(context) }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     val isNfcAvailable = remember { nfcHelper.isNfcSupported() }
     var isNfcEnabled by remember { mutableStateOf(nfcHelper.isNfcAvailable()) }
 
-    // Refresh NFC status when returning from settings/quick-settings
+    // Refresh NFC status on every resume (user toggled NFC in quick-settings)
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                isNfcEnabled = nfcHelper.isNfcAvailable()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    // Register NFC callback
     DisposableEffect(navController) {
         registerNfcCallback?.invoke { tagId ->
             isNfcEnabled = nfcHelper.isNfcAvailable()
+
+            // Check default tag first
+            val defaultTagId = tagStorage.getDefaultTagId()
+            if (defaultTagId != null && tagId == defaultTagId) {
+                navController.navigate("player?autoPlay=true&uri=") {
+                    popUpTo("home") { inclusive = false }
+                }
+                return@invoke
+            }
+
+            // Check mapped tag
             val mapping = tagStorage.getMapping(tagId)
             if (mapping != null) {
                 val encodedUri = java.net.URLEncoder.encode(mapping.audioUri, "UTF-8")
@@ -115,10 +139,7 @@ fun MainApp(
         }
     }
 
-    NavHost(
-        navController = navController,
-        startDestination = "home"
-    ) {
+    NavHost(navController = navController, startDestination = "home") {
         composable("home") {
             HomeScreen(
                 isNfcAvailable = isNfcAvailable,
@@ -130,6 +151,11 @@ fun MainApp(
                 },
                 onNavigateToSettings = {
                     navController.navigate("settings") {
+                        popUpTo("home") { inclusive = false }
+                    }
+                },
+                onNavigateToTagReader = {
+                    navController.navigate("tag_reader") {
                         popUpTo("home") { inclusive = false }
                     }
                 }
@@ -155,6 +181,13 @@ fun MainApp(
 
         composable("learning") {
             NfcLearningScreen(
+                nfcHelper = nfcHelper,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("tag_reader") {
+            NfcTagReaderScreen(
                 nfcHelper = nfcHelper,
                 onNavigateBack = { navController.popBackStack() }
             )

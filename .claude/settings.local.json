@@ -12,7 +12,8 @@
       "Read(//c/Program Files/Android/Android Studio/**)",
       "Read(//c/Users/27415/AppData/Local/Android/**)",
       "Bash(JAVA_HOME=\"E:/APP/java\" ./gradlew compileDebugKotlin)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(JAVA_HOME=\"E:/APP/java\" ./gradlew assembleDebug)"
     ]
   }
 }

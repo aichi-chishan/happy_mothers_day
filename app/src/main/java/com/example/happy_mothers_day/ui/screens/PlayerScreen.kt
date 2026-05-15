@@ -1,7 +1,6 @@
 package com.example.happy_mothers_day.ui.screens
 
 import android.content.res.Configuration
-import android.media.MediaPlayer
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -30,6 +29,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -48,12 +48,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import com.example.happy_mothers_day.R
+import com.example.happy_mothers_day.audio.AudioManager
 import com.example.happy_mothers_day.ui.components.RotatingVinyl
 import com.example.happy_mothers_day.ui.theme.RosePink
 import com.example.happy_mothers_day.ui.theme.RosePinkLight
 import com.example.happy_mothers_day.ui.theme.VinylBlack
-import java.io.File
 import kotlinx.coroutines.delay
 
 @Composable
@@ -66,67 +65,61 @@ fun PlayerScreen(
     val context = LocalContext.current
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
+    // Track local UI state synced from AudioManager
     var isPlaying by remember { mutableStateOf(false) }
-    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
     var hasError by remember { mutableStateOf(false) }
-    var playerReady by remember { mutableStateOf(false) }
-    var currentPosition by remember { mutableIntStateOf(0) }
     var duration by remember { mutableIntStateOf(0) }
+    var currentPosition by remember { mutableIntStateOf(0) }
     var seekPosition by remember { mutableFloatStateOf(0f) }
     var isSeeking by remember { mutableStateOf(false) }
 
+    // Subscribe to AudioManager state changes
+    DisposableEffect(Unit) {
+        AudioManager.onStateChanged = {
+            isPlaying = AudioManager.isPlaying
+            hasError = AudioManager.hasError
+            duration = AudioManager.duration
+        }
+        onDispose {
+            AudioManager.onStateChanged = null
+        }
+    }
+
+    // Start playback
     LaunchedEffect(audioUri) {
-        playerReady = false
-        isPlaying = false
-        mediaPlayer?.release()
-        mediaPlayer = null
-
-        val mp = try {
-            if (!audioUri.isNullOrEmpty()) {
-                val file = File(audioUri)
-                if (file.exists()) {
-                    MediaPlayer().apply {
-                        setDataSource(audioUri)
-                        prepare()
-                        setOnCompletionListener { isPlaying = false }
-                    }
-                } else null
-            } else {
-                MediaPlayer.create(context, R.raw.mothers_day_audio)?.apply {
-                    setOnCompletionListener { isPlaying = false }
-                }
-            }
-        } catch (_: Exception) { null }
-
-        if (mp == null) {
-            hasError = true
-        } else {
-            hasError = false
-            mediaPlayer = mp
-            duration = mp.duration
-        }
-        playerReady = true
+        AudioManager.play(context, audioUri)
+        isPlaying = AudioManager.isPlaying
+        hasError = AudioManager.hasError
+        duration = AudioManager.duration
     }
 
-    LaunchedEffect(playerReady, autoPlay) {
-        if (playerReady && autoPlay && mediaPlayer != null) {
-            mediaPlayer?.start()
-            isPlaying = true
-        }
-    }
+    // Auto-start handled by AudioManager.play() which starts immediately
 
     // Progress polling
     LaunchedEffect(isPlaying) {
         while (isPlaying) {
-            val mp = mediaPlayer ?: break
             try {
-                currentPosition = mp.currentPosition
-                if (!isSeeking) {
-                    seekPosition = if (duration > 0) currentPosition.toFloat() / duration else 0f
+                currentPosition = AudioManager.currentPosition()
+                if (!isSeeking && duration > 0) {
+                    seekPosition = currentPosition.toFloat() / duration
                 }
             } catch (_: Exception) { }
             delay(300)
         }
+    }
+
+    val onPlayPause: () -> Unit = {
+        AudioManager.togglePause()
+        isPlaying = AudioManager.isPlaying
+    }
+    val onSeekStart: () -> Unit = { isSeeking = true }
+    val onSeek: (Float) -> Unit = { fraction ->
+        seekPosition = fraction
+        currentPosition = (fraction * duration).toInt()
+    }
+    val onSeekEnd: () -> Unit = {
+        isSeeking = false
+        AudioManager.seekTo(currentPosition)
     }
 
     Box(
@@ -138,31 +131,13 @@ fun PlayerScreen(
                 )
             )
     ) {
-        val onPlayPause: () -> Unit = {
-            val mp = mediaPlayer
-            if (mp == null) { hasError = true }
-            else {
-                if (isPlaying) mp.pause() else mp.start()
-                isPlaying = !isPlaying
-            }
-        }
-        val onSeekStart: () -> Unit = { isSeeking = true }
-        val onSeek: (Float) -> Unit = { fraction ->
-            seekPosition = fraction
-            currentPosition = (fraction * duration).toInt()
-        }
-        val onSeekEnd: () -> Unit = {
-            isSeeking = false
-            mediaPlayer?.seekTo(currentPosition)
-        }
-
         if (isLandscape) {
             LandscapePlayer(isPlaying, hasError, audioUri, duration, currentPosition, seekPosition, isSeeking, onPlayPause, onSeekStart, onSeek, onSeekEnd)
         } else {
             PortraitPlayer(isPlaying, hasError, audioUri, duration, currentPosition, seekPosition, isSeeking, onPlayPause, onSeekStart, onSeek, onSeekEnd)
         }
 
-        // Back button on top, in BoxScope
+        // Back button on top
         IconButton(
             onClick = { onNavigateBack() },
             modifier = Modifier.padding(if (isLandscape) 12.dp else 16.dp).align(Alignment.TopStart).zIndex(10f)
@@ -174,52 +149,23 @@ fun PlayerScreen(
 
 @Composable
 private fun PortraitPlayer(
-    isPlaying: Boolean,
-    hasError: Boolean,
-    audioUri: String?,
-    duration: Int,
-    currentPosition: Int,
-    seekPosition: Float,
-    isSeeking: Boolean,
-    onPlayPause: () -> Unit,
-    onSeekStart: () -> Unit,
-    onSeek: (Float) -> Unit,
-    onSeekEnd: () -> Unit,
+    isPlaying: Boolean, hasError: Boolean, audioUri: String?,
+    duration: Int, currentPosition: Int, seekPosition: Float, isSeeking: Boolean,
+    onPlayPause: () -> Unit, onSeekStart: () -> Unit, onSeek: (Float) -> Unit, onSeekEnd: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxSize().padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            text = "献给妈妈",
-            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, color = RosePinkLight),
-            textAlign = TextAlign.Center
-        )
+        Text("献给妈妈", style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, color = RosePinkLight), textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "For My Dear Mother",
-            style = MaterialTheme.typography.bodyMedium.copy(color = RosePinkLight.copy(alpha = 0.6f), fontSize = 14.sp),
-            textAlign = TextAlign.Center
-        )
+        Text("For My Dear Mother", style = MaterialTheme.typography.bodyMedium.copy(color = RosePinkLight.copy(alpha = 0.6f), fontSize = 14.sp), textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(32.dp))
-
         RotatingVinyl(isPlaying = isPlaying, size = 220.dp)
-
         Spacer(modifier = Modifier.height(32.dp))
-
-        ProgressBar(
-            duration = duration,
-            currentPosition = currentPosition,
-            seekPosition = seekPosition,
-            isSeeking = isSeeking,
-            onSeekStart = onSeekStart,
-            onSeek = onSeek,
-            onSeekEnd = onSeekEnd
-        )
-
+        ProgressBar(duration, currentPosition, seekPosition, isSeeking, onSeekStart, onSeek, onSeekEnd)
         Spacer(modifier = Modifier.height(16.dp))
-
         AnimatedVisibility(visible = hasError, enter = fadeIn(), exit = fadeOut()) {
             Text(
                 text = if (audioUri.isNullOrEmpty()) "请将音频文件放入 res/raw/ 目录" else "音频文件不存在或无法播放",
@@ -227,128 +173,47 @@ private fun PortraitPlayer(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
         }
-
-        FloatingActionButton(
-            onClick = onPlayPause,
-            modifier = Modifier.size(64.dp),
-            containerColor = RosePink,
-            contentColor = Color.White,
-            shape = CircleShape
-        ) {
-            Icon(
-                imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                contentDescription = if (isPlaying) "暂停" else "播放",
-                modifier = Modifier.size(32.dp)
-            )
+        FloatingActionButton(onClick = onPlayPause, modifier = Modifier.size(64.dp), containerColor = RosePink, contentColor = Color.White, shape = CircleShape) {
+            Icon(imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, contentDescription = if (isPlaying) "暂停" else "播放", modifier = Modifier.size(32.dp))
         }
-
         Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = when { hasError -> "无法播放"; isPlaying -> "正在播放..."; else -> "点击播放" },
-            style = MaterialTheme.typography.bodyMedium.copy(color = RosePinkLight.copy(alpha = 0.7f))
-        )
+        Text(text = when { hasError -> "无法播放"; isPlaying -> "正在播放..."; else -> "点击播放" }, style = MaterialTheme.typography.bodyMedium.copy(color = RosePinkLight.copy(alpha = 0.7f)))
     }
-
 }
 
 @Composable
 private fun LandscapePlayer(
-    isPlaying: Boolean,
-    hasError: Boolean,
-    audioUri: String?,
-    duration: Int,
-    currentPosition: Int,
-    seekPosition: Float,
-    isSeeking: Boolean,
-    onPlayPause: () -> Unit,
-    onSeekStart: () -> Unit,
-    onSeek: (Float) -> Unit,
-    onSeekEnd: () -> Unit,
+    isPlaying: Boolean, hasError: Boolean, audioUri: String?,
+    duration: Int, currentPosition: Int, seekPosition: Float, isSeeking: Boolean,
+    onPlayPause: () -> Unit, onSeekStart: () -> Unit, onSeek: (Float) -> Unit, onSeekEnd: () -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Left: vinyl
-        Column(
-            modifier = Modifier.weight(1f),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
+    Row(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             RotatingVinyl(isPlaying = isPlaying, size = 180.dp)
         }
-
-        // Right: title, progress, controls
-        Column(
-            modifier = Modifier.weight(1f).padding(start = 8.dp, end = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "献给妈妈",
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold, color = RosePinkLight),
-                textAlign = TextAlign.Center
-            )
+        Column(modifier = Modifier.weight(1f).padding(start = 8.dp, end = 8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Text("献给妈妈", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold, color = RosePinkLight), textAlign = TextAlign.Center)
             Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "For My Dear Mother",
-                style = MaterialTheme.typography.bodyMedium.copy(color = RosePinkLight.copy(alpha = 0.6f), fontSize = 12.sp),
-                textAlign = TextAlign.Center
-            )
+            Text("For My Dear Mother", style = MaterialTheme.typography.bodyMedium.copy(color = RosePinkLight.copy(alpha = 0.6f), fontSize = 12.sp), textAlign = TextAlign.Center)
             Spacer(modifier = Modifier.height(24.dp))
-
-            ProgressBar(
-                duration = duration,
-                currentPosition = currentPosition,
-                seekPosition = seekPosition,
-                isSeeking = isSeeking,
-                onSeekStart = onSeekStart,
-                onSeek = onSeek,
-                onSeekEnd = onSeekEnd
-            )
+            ProgressBar(duration, currentPosition, seekPosition, isSeeking, onSeekStart, onSeek, onSeekEnd)
             Spacer(modifier = Modifier.height(12.dp))
-
             AnimatedVisibility(visible = hasError, enter = fadeIn(), exit = fadeOut()) {
-                Text(
-                    text = if (audioUri.isNullOrEmpty()) "音频文件缺失" else "音频文件无法播放",
-                    style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFFB0B0B0), textAlign = TextAlign.Center),
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
+                Text(text = if (audioUri.isNullOrEmpty()) "音频文件缺失" else "音频文件无法播放", style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFFB0B0B0), textAlign = TextAlign.Center), modifier = Modifier.padding(bottom = 4.dp))
             }
-
-            FloatingActionButton(
-                onClick = onPlayPause,
-                modifier = Modifier.size(56.dp),
-                containerColor = RosePink,
-                contentColor = Color.White,
-                shape = CircleShape
-            ) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                    contentDescription = if (isPlaying) "暂停" else "播放",
-                    modifier = Modifier.size(28.dp)
-                )
+            FloatingActionButton(onClick = onPlayPause, modifier = Modifier.size(56.dp), containerColor = RosePink, contentColor = Color.White, shape = CircleShape) {
+                Icon(imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, contentDescription = if (isPlaying) "暂停" else "播放", modifier = Modifier.size(28.dp))
             }
-
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = when { hasError -> "无法播放"; isPlaying -> "正在播放..."; else -> "点击播放" },
-                style = MaterialTheme.typography.bodySmall.copy(color = RosePinkLight.copy(alpha = 0.7f))
-            )
+            Text(text = when { hasError -> "无法播放"; isPlaying -> "正在播放..."; else -> "点击播放" }, style = MaterialTheme.typography.bodySmall.copy(color = RosePinkLight.copy(alpha = 0.7f)))
         }
     }
-
 }
 
 @Composable
 private fun ProgressBar(
-    duration: Int,
-    currentPosition: Int,
-    seekPosition: Float,
-    isSeeking: Boolean,
-    onSeekStart: () -> Unit,
-    onSeek: (Float) -> Unit,
-    onSeekEnd: () -> Unit
+    duration: Int, currentPosition: Int, seekPosition: Float, isSeeking: Boolean,
+    onSeekStart: () -> Unit, onSeek: (Float) -> Unit, onSeekEnd: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Slider(
@@ -356,25 +221,11 @@ private fun ProgressBar(
             onValueChange = { onSeek(it) },
             onValueChangeFinished = onSeekEnd,
             modifier = Modifier.fillMaxWidth().height(24.dp),
-            colors = SliderDefaults.colors(
-                thumbColor = RosePink,
-                activeTrackColor = RosePink,
-                inactiveTrackColor = RosePinkLight.copy(alpha = 0.3f)
-            )
+            colors = SliderDefaults.colors(thumbColor = RosePink, activeTrackColor = RosePink, inactiveTrackColor = RosePinkLight.copy(alpha = 0.3f))
         )
-
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = formatTime(if (isSeeking) currentPosition else currentPosition),
-                style = MaterialTheme.typography.bodySmall.copy(color = RosePinkLight.copy(alpha = 0.6f), fontSize = 11.sp)
-            )
-            Text(
-                text = formatTime(duration),
-                style = MaterialTheme.typography.bodySmall.copy(color = RosePinkLight.copy(alpha = 0.6f), fontSize = 11.sp)
-            )
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(formatTime(if (isSeeking) currentPosition else currentPosition), style = MaterialTheme.typography.bodySmall.copy(color = RosePinkLight.copy(alpha = 0.6f), fontSize = 11.sp))
+            Text(formatTime(duration), style = MaterialTheme.typography.bodySmall.copy(color = RosePinkLight.copy(alpha = 0.6f), fontSize = 11.sp))
         }
     }
 }

@@ -15,10 +15,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -28,6 +31,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -68,10 +72,12 @@ fun HomeScreen(
     isNfcEnabled: Boolean,
     onNavigateToPlayer: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToTagReader: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     var menuExpanded by remember { mutableStateOf(false) }
+    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
     Box(modifier = modifier.fillMaxSize()) {
         // Gradient background
@@ -91,9 +97,12 @@ fun HomeScreen(
 
         FloatingHearts()
 
-        // Menu button (top-right, always visible)
+        // Menu button (top-right, with status bar offset in portrait)
         Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(
+                top = statusBarHeight + 8.dp,
+                end = 16.dp
+            ),
             horizontalArrangement = Arrangement.End
         ) {
             Box {
@@ -118,6 +127,11 @@ fun HomeScreen(
                         text = { Text("设置") },
                         onClick = { menuExpanded = false; onNavigateToSettings() },
                         leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null) }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("读取线圈数据") },
+                        onClick = { menuExpanded = false; onNavigateToTagReader() },
+                        leadingIcon = { Icon(Icons.Filled.Nfc, contentDescription = null) }
                     )
                 }
             }
@@ -301,7 +315,7 @@ private fun NfcCard(isNfcAvailable: Boolean, isNfcEnabled: Boolean) {
         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.85f))
     ) {
         Column(
-            modifier = Modifier.padding(24.dp),
+            modifier = Modifier.fillMaxWidth().padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
@@ -325,6 +339,7 @@ private fun NfcCard(isNfcAvailable: Boolean, isNfcEnabled: Boolean) {
                     fontWeight = FontWeight.Medium,
                     color = statusColor
                 ),
+                modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center
             )
         }

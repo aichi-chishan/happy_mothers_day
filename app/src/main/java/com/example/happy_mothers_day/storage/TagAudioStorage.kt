@@ -44,6 +44,18 @@ class TagAudioStorage(private val context: Context) {
         }
     }
 
+    fun getDefaultTagId(): String? {
+        return prefs.getString("default_tag_id", null)
+    }
+
+    fun setDefaultTagId(tagId: String?) {
+        if (tagId != null) {
+            prefs.edit().putString("default_tag_id", tagId).apply()
+        } else {
+            prefs.edit().remove("default_tag_id").apply()
+        }
+    }
+
     private fun writeAll(mappings: List<TagEntry>) {
         val arr = org.json.JSONArray()
         mappings.forEach {
