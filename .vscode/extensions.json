@@ -1,8 +1,6 @@
 {
   "recommendations": [
-    "fwcd.kotlin",
-    "vscjava.vscode-gradle",
-    "visualstudioexptteam.vscodeintellicode"
+    "fwcd.kotlin"
   ],
   "unwantedRecommendations": []
 }
