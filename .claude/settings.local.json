@@ -5,7 +5,12 @@
       "Bash(./gradlew compileDebugKotlin)",
       "Bash(git init *)",
       "Bash(git add *)",
-      "Bash(git commit -m 'Initial commit: Happy Mother'\\\\''s Day Android app *)"
+      "Bash(git commit -m 'Initial commit: Happy Mother'\\\\''s Day Android app *)",
+      "Read(//c/Program Files/Microsoft/**)",
+      "Read(//c/Program Files/**)",
+      "Read(//c/Program Files/Android/**)",
+      "Read(//c/Program Files/Android/Android Studio/**)",
+      "Read(//c/Users/27415/AppData/Local/Android/**)"
     ]
   }
 }
