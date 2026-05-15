@@ -60,6 +60,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.example.happy_mothers_day.ui.theme.DeepRose
 import com.example.happy_mothers_day.ui.theme.RosePink
 import com.example.happy_mothers_day.ui.theme.RosePinkLight
@@ -97,9 +98,9 @@ fun HomeScreen(
 
         FloatingHearts()
 
-        // Menu button (top-right, with status bar offset in portrait)
+        // Menu button (top-right, on top of all content)
         Row(
-            modifier = Modifier.fillMaxWidth().padding(
+            modifier = Modifier.fillMaxWidth().zIndex(100f).padding(
                 top = statusBarHeight + 8.dp,
                 end = 16.dp
             ),

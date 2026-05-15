@@ -2,11 +2,15 @@ package com.example.happy_mothers_day
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,11 +30,24 @@ import com.example.happy_mothers_day.ui.screens.NfcTagReaderScreen
 import com.example.happy_mothers_day.ui.screens.PlayerScreen
 import com.example.happy_mothers_day.ui.screens.SettingsScreen
 import com.example.happy_mothers_day.ui.theme.HappyMothersDayTheme
+import kotlinx.coroutines.delay
+
+/** User's specific NFC tag, auto-plays default audio without learning */
+private const val HARDCODED_DEFAULT_TAG_ID = "04669e70d32a81"
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var nfcHelper: NfcHelper
     private var nfcCallback: ((String) -> Unit)? = null
+
+    private val handler = Handler(Looper.getMainLooper())
+    private val pollingRunnable = object : Runnable {
+        override fun run() {
+            // Attempt to restart reader every 2s — ensures takeover when NFC is turned on
+            refreshNfcReader()
+            handler.postDelayed(this, 2000L)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,10 +72,12 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         refreshNfcReader()
+        handler.post(pollingRunnable) // Start periodic polling
     }
 
     override fun onPause() {
         super.onPause()
+        handler.removeCallbacks(pollingRunnable)
         nfcHelper.stopNfcReader()
     }
 
@@ -96,7 +115,7 @@ fun MainApp(
     val isNfcAvailable = remember { nfcHelper.isNfcSupported() }
     var isNfcEnabled by remember { mutableStateOf(nfcHelper.isNfcAvailable()) }
 
-    // Refresh NFC status on every resume (user toggled NFC in quick-settings)
+    // Refresh NFC status on every resume + ensure saved default tag is recognized
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -107,21 +126,40 @@ fun MainApp(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    // Periodic NFC status refresh for UI (reader restart is handled by Activity polling)
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(2000L)
+            isNfcEnabled = nfcHelper.isNfcAvailable()
+        }
+    }
+
     // Register NFC callback
     DisposableEffect(navController) {
         registerNfcCallback?.invoke { tagId ->
             isNfcEnabled = nfcHelper.isNfcAvailable()
 
-            // Check default tag first
-            val defaultTagId = tagStorage.getDefaultTagId()
-            if (defaultTagId != null && tagId == defaultTagId) {
+            // Normalize tag ID for comparison
+            val normalized = tagId.lowercase()
+
+            // 1. Check hardcoded default tag
+            if (normalized == HARDCODED_DEFAULT_TAG_ID) {
                 navController.navigate("player?autoPlay=true&uri=") {
                     popUpTo("home") { inclusive = false }
                 }
                 return@invoke
             }
 
-            // Check mapped tag
+            // 2. Check user-saved default tag (from tag reader screen)
+            val savedDefault = tagStorage.getDefaultTagId()
+            if (savedDefault != null && normalized == savedDefault.lowercase()) {
+                navController.navigate("player?autoPlay=true&uri=") {
+                    popUpTo("home") { inclusive = false }
+                }
+                return@invoke
+            }
+
+            // 3. Check learned mapping
             val mapping = tagStorage.getMapping(tagId)
             if (mapping != null) {
                 val encodedUri = java.net.URLEncoder.encode(mapping.audioUri, "UTF-8")
@@ -129,9 +167,8 @@ fun MainApp(
                     popUpTo("home") { inclusive = false }
                 }
             } else {
-                navController.navigate("player?autoPlay=true&uri=") {
-                    popUpTo("home") { inclusive = false }
-                }
+                // 4. Unknown tag — show message, don't play
+                Toast.makeText(context, "未识别的NFC标签\n请在设置中学习或设为默认线圈", Toast.LENGTH_SHORT).show()
             }
         }
         onDispose {
