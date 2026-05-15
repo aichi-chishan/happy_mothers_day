@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,14 +57,13 @@ fun RotatingVinyl(
 @Composable
 private fun rememberVinylRotation(isPlaying: Boolean): State<Float> {
     val infiniteTransition = rememberInfiniteTransition(label = "vinyl_rotation")
+    // Cache specs so they don't recreate every recomposition
+    val playSpec = remember { infiniteRepeatable(animation = tween<Float>(5000, easing = LinearEasing), repeatMode = RepeatMode.Restart) }
+    val pauseSpec = remember { infiniteRepeatable(animation = tween<Float>(1, easing = LinearEasing), repeatMode = RepeatMode.Restart) }
     return infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
-        animationSpec = if (isPlaying) {
-            infiniteRepeatable(animation = tween<Float>(5000, easing = LinearEasing), repeatMode = RepeatMode.Restart)
-        } else {
-            infiniteRepeatable(animation = tween<Float>(1, easing = LinearEasing), repeatMode = RepeatMode.Restart)
-        },
+        animationSpec = if (isPlaying) playSpec else pauseSpec,
         label = "rotation"
     )
 }

@@ -196,13 +196,14 @@ fun HomeScreen(
         // Mini player — floating above bottom (compact in landscape)
         if (miniVisible) {
             Box(modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter)
-                .padding(horizontal = 24.dp, vertical = if (isLandscape) 4.dp else 12.dp).zIndex(99f)) {
+                .padding(horizontal = if (isLandscape) 16.dp else 24.dp, vertical = if (isLandscape) 2.dp else 12.dp).zIndex(99f)) {
                 MiniPlayer(
                 fileName = miniFileName,
                 isPlaying = miniPlaying,
                 duration = miniDuration,
                 position = miniPosition,
                 source = miniSource,
+                compact = isLandscape,
                 onPlayPause = { AudioManager.togglePause(); miniPlaying = AudioManager.isPlaying },
                 onSeek = { AudioManager.seekToFraction(it) },
                 onNavigateToPlayer = {
@@ -227,6 +228,7 @@ private fun MiniPlayer(
     duration: Int,
     position: Int,
     source: String?,
+    compact: Boolean = false,
     onPlayPause: () -> Unit,
     onSeek: (Float) -> Unit,
     onNavigateToPlayer: () -> Unit
@@ -248,16 +250,16 @@ private fun MiniPlayer(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.94f))
     ) {
-        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+        Column(modifier = Modifier.padding(horizontal = if (compact) 12.dp else 20.dp, vertical = if (compact) 6.dp else 12.dp)) {
             // Title row
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     Icons.Filled.MusicNote,
                     contentDescription = null,
                     tint = RosePink,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(if (compact) 14.dp else 18.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(if (compact) 4.dp else 8.dp))
                 Text(
                     text = fileName,
                     style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
@@ -267,9 +269,9 @@ private fun MiniPlayer(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(if (compact) 4.dp else 8.dp))
 
-            // Progress bar (larger, tappable)
+            // Progress bar
             Slider(
                 value = displayFraction,
                 onValueChange = {
@@ -280,7 +282,7 @@ private fun MiniPlayer(
                     seekDrag = false
                     onSeek(dragFraction)
                 },
-                modifier = Modifier.fillMaxWidth().height(28.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = if (compact) 4.dp else 0.dp).height(if (compact) 20.dp else 28.dp),
                 colors = SliderDefaults.colors(
                     thumbColor = RosePink,
                     activeTrackColor = RosePink,
@@ -300,13 +302,13 @@ private fun MiniPlayer(
                 Spacer(modifier = Modifier.weight(1f))
                 IconButton(
                     onClick = onPlayPause,
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier.size(if (compact) 32.dp else 40.dp)
                 ) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                         contentDescription = if (isPlaying) "暂停" else "播放",
                         tint = RosePink,
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(if (compact) 22.dp else 28.dp)
                     )
                 }
                 Spacer(modifier = Modifier.weight(1f))
@@ -331,7 +333,7 @@ private fun PortraitLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNav
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp)
-            .padding(bottom = if (miniVisible) 90.dp else 0.dp)
+            .padding(bottom = if (miniVisible) 110.dp else 0.dp)
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
