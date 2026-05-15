@@ -9,7 +9,8 @@ import android.util.Log
 class NfcHelper(private val activity: Activity) {
 
     private var nfcAdapter: NfcAdapter? = null
-    private var onTagDiscovered: (() -> Unit)? = null
+    private var onTagDiscovered: ((tagId: String) -> Unit)? = null
+    private var onTagCaptured: ((tagId: String) -> Unit)? = null
 
     fun isNfcAvailable(): Boolean {
         val manager = activity.getSystemService(Context.NFC_SERVICE) as? NfcManager
@@ -22,7 +23,7 @@ class NfcHelper(private val activity: Activity) {
         return manager?.defaultAdapter != null
     }
 
-    fun startNfcReader(onTagDetected: () -> Unit) {
+    fun startNfcReader(onTagDetected: (tagId: String) -> Unit) {
         onTagDiscovered = onTagDetected
         val manager = activity.getSystemService(Context.NFC_SERVICE) as? NfcManager
         nfcAdapter = manager?.defaultAdapter
@@ -32,9 +33,11 @@ class NfcHelper(private val activity: Activity) {
                 adapter.enableReaderMode(
                     activity,
                     { tag ->
-                        Log.d("NfcHelper", "NFC tag discovered: ${tag.id.toHexString()}")
+                        val tagId = tag.id.toHexString()
+                        Log.d("NfcHelper", "NFC tag discovered: $tagId")
                         activity.runOnUiThread {
-                            onTagDiscovered?.invoke()
+                            onTagCaptured?.invoke(tagId)
+                            onTagDiscovered?.invoke(tagId)
                         }
                     },
                     NfcAdapter.FLAG_READER_NFC_A or
@@ -51,6 +54,17 @@ class NfcHelper(private val activity: Activity) {
 
     fun stopNfcReader() {
         nfcAdapter?.disableReaderMode(activity)
+    }
+
+    /**
+     * Register a one-shot callback for learning mode.
+     * After capturing one tag, the callback is cleared.
+     */
+    fun captureNextTag(onCaptured: (tagId: String) -> Unit) {
+        onTagCaptured = { tagId ->
+            onTagCaptured = null
+            onCaptured(tagId)
+        }
     }
 
     private fun ByteArray.toHexString(): String {

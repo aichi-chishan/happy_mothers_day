@@ -1,0 +1,58 @@
+package com.example.happy_mothers_day.storage
+
+import android.content.Context
+import org.json.JSONObject
+
+class TagAudioStorage(private val context: Context) {
+
+    data class TagEntry(val tagId: String, val audioUri: String, val fileName: String)
+
+    private val prefs
+        get() = context.getSharedPreferences("tag_audio_mappings", Context.MODE_PRIVATE)
+
+    fun saveMapping(tagId: String, audioUri: String, fileName: String) {
+        val all = getAllMappings().toMutableList()
+        all.removeAll { it.tagId == tagId }
+        all.add(TagEntry(tagId, audioUri, fileName))
+        writeAll(all)
+    }
+
+    fun removeMapping(tagId: String) {
+        val all = getAllMappings().toMutableList()
+        all.removeAll { it.tagId == tagId }
+        writeAll(all)
+    }
+
+    fun getMapping(tagId: String): TagEntry? {
+        return getAllMappings().find { it.tagId == tagId }
+    }
+
+    fun getAllMappings(): List<TagEntry> {
+        val json = prefs.getString("mappings", "[]") ?: "[]"
+        return try {
+            val arr = org.json.JSONArray(json)
+            (0 until arr.length()).map { i ->
+                val obj = arr.getJSONObject(i)
+                TagEntry(
+                    tagId = obj.getString("tagId"),
+                    audioUri = obj.getString("audioUri"),
+                    fileName = obj.getString("fileName")
+                )
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    private fun writeAll(mappings: List<TagEntry>) {
+        val arr = org.json.JSONArray()
+        mappings.forEach {
+            arr.put(JSONObject().apply {
+                put("tagId", it.tagId)
+                put("audioUri", it.audioUri)
+                put("fileName", it.fileName)
+            })
+        }
+        prefs.edit().putString("mappings", arr.toString()).apply()
+    }
+}

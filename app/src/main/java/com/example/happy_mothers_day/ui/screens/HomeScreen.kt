@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -63,6 +64,7 @@ fun HomeScreen(
     isNfcAvailable: Boolean,
     isNfcEnabled: Boolean,
     onNavigateToPlayer: () -> Unit,
+    onNavigateToSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
@@ -119,6 +121,16 @@ fun HomeScreen(
                             },
                             leadingIcon = {
                                 Icon(Icons.Filled.MusicNote, contentDescription = null)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("设置") },
+                            onClick = {
+                                menuExpanded = false
+                                onNavigateToSettings()
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Filled.Settings, contentDescription = null)
                             }
                         )
                     }

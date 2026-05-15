@@ -1,6 +1,7 @@
 package com.example.happy_mothers_day.ui.screens
 
 import android.media.MediaPlayer
+import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -48,6 +49,7 @@ import com.example.happy_mothers_day.ui.theme.VinylBlack
 fun PlayerScreen(
     onNavigateBack: () -> Unit,
     autoPlay: Boolean = false,
+    audioUri: String? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -56,11 +58,17 @@ fun PlayerScreen(
     var hasError by remember { mutableStateOf(false) }
 
     // Initialize MediaPlayer
-    DisposableEffect(Unit) {
+    DisposableEffect(audioUri) {
         val mp = try {
-            MediaPlayer.create(context, R.raw.mothers_day_audio)?.apply {
-                setOnCompletionListener {
-                    isPlaying = false
+            if (!audioUri.isNullOrEmpty()) {
+                MediaPlayer().apply {
+                    setDataSource(context, Uri.parse(audioUri))
+                    prepare()
+                    setOnCompletionListener { isPlaying = false }
+                }
+            } else {
+                MediaPlayer.create(context, R.raw.mothers_day_audio)?.apply {
+                    setOnCompletionListener { isPlaying = false }
                 }
             }
         } catch (e: Exception) {
