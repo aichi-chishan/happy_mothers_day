@@ -337,15 +337,15 @@ private fun PortraitLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNav
         Spacer(modifier = Modifier.height(8.dp))
         Text("Happy Mother's Day", style = MaterialTheme.typography.titleMedium.copy(color = RosePink.copy(alpha = 0.7f)), textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.weight(1f))
-        NfcCard(isNfcAvailable, isNfcEnabled)
-        Spacer(modifier = Modifier.height(24.dp))
         if (!isNfcAvailable || !isNfcEnabled) {
             Button(onClick = onNavigateToPlayer, modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(24.dp), colors = ButtonDefaults.buttonColors(containerColor = RosePink)) {
                 Icon(Icons.Filled.MusicNote, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("直接播放音频", fontWeight = FontWeight.Medium)
             }
+            Spacer(modifier = Modifier.height(12.dp))
         }
+        NfcCard(isNfcAvailable, isNfcEnabled)
         Spacer(modifier = Modifier.height(110.dp)) // room for floating mini player
     }
 }
@@ -415,15 +415,15 @@ private fun FloatingHearts() {
                 label = "heart_opacity_${heart.xFraction}"
             )
             Canvas(
-                modifier = Modifier.fillMaxSize().offset(x = ((heart.xFraction - 0.5f) * 300).dp, y = ((animY - 0.5f) * 500).dp).size((heart.sizeDp * 2.8f).dp)
+                modifier = Modifier.offset(x = ((heart.xFraction - 0.5f) * 300).dp, y = ((animY - 0.5f) * 500).dp).size((heart.sizeDp * 2f).dp)
             ) {
                 val w = size.width
                 val h = size.height
-                val cpx = w * 0.42f
+                // Canvas is square so w == h, heart is correctly proportioned
                 val path = Path().apply {
-                    moveTo(w / 2, h * 0.82f)
-                    cubicTo(0f, h * 0.48f, 0f, h * 0.12f, w / 2, h * 0.2f)
-                    cubicTo(w.toFloat(), h * 0.12f, w.toFloat(), h * 0.48f, w / 2, h * 0.82f)
+                    moveTo(w / 2, h * 0.88f)
+                    cubicTo(w * 0.1f, h * 0.5f, w * 0.1f, h * 0.15f, w / 2, h * 0.22f)
+                    cubicTo(w * 0.9f, h * 0.15f, w * 0.9f, h * 0.5f, w / 2, h * 0.88f)
                     close()
                 }
                 drawPath(path, Color(0xFFE91E63).copy(alpha = opacity))

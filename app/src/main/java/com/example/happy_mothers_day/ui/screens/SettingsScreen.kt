@@ -8,6 +8,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -56,6 +59,7 @@ fun SettingsScreen(
     var mappings by remember { mutableStateOf(storage.getAllMappings()) }
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val scope = rememberCoroutineScope()
+    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
     // --- Edit state ---
     var editingEntry by remember { mutableStateOf<TagAudioStorage.TagEntry?>(null) }
@@ -85,7 +89,7 @@ fun SettingsScreen(
         ))
 
         Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(modifier = Modifier.fillMaxWidth().padding(top = statusBarHeight), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onNavigateBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回", tint = DeepRose)
                 }

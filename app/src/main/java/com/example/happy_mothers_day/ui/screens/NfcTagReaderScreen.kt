@@ -2,6 +2,9 @@ package com.example.happy_mothers_day.ui.screens
 
 import android.content.res.Configuration
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,10 +41,20 @@ fun NfcTagReaderScreen(
     val context = LocalContext.current
     val storage = remember { TagAudioStorage(context) }
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
     var scannedTagId by remember { mutableStateOf<String?>(null) }
     var isDefault by remember { mutableStateOf(false) }
     var isScanning by remember { mutableStateOf(true) }
+    var nfcAvailable by remember { mutableStateOf(nfcHelper.isNfcAvailable()) }
+
+    // Poll NFC status every 2s
+    LaunchedEffect(Unit) {
+        while (true) {
+            nfcAvailable = nfcHelper.isNfcAvailable()
+            kotlinx.coroutines.delay(2000)
+        }
+    }
 
     // Start scanning immediately
     LaunchedEffect(Unit) {
@@ -65,7 +78,7 @@ fun NfcTagReaderScreen(
             modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(modifier = Modifier.fillMaxWidth().padding(top = statusBarHeight), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onNavigateBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回", tint = DeepRose)
                 }
@@ -73,6 +86,13 @@ fun NfcTagReaderScreen(
                     "读取线圈数据",
                     style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold, color = DeepRose),
                     modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = if (nfcAvailable) "NFC ✓" else "NFC ✗",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = if (nfcAvailable) com.example.happy_mothers_day.ui.theme.RosePink else Color.Gray
+                    ),
+                    modifier = Modifier.padding(end = 8.dp)
                 )
             }
 
