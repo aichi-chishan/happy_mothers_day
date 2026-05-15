@@ -5,11 +5,6 @@ import android.media.MediaPlayer
 import com.example.happy_mothers_day.R
 import java.io.File
 
-/**
- * Singleton that owns the single MediaPlayer instance.
- * All playback routes through here so only one audio stream exists.
- * Survives Activity recreation (rotation).
- */
 object AudioManager {
 
     private var mediaPlayer: MediaPlayer? = null
@@ -22,7 +17,18 @@ object AudioManager {
     var hasError: Boolean = false
         private set
 
-    /** Called by composable to register for state-change notifications */
+    /** null = built-in default, non-null = custom file path */
+    var currentSourcePath: String? = null
+        private set
+    var currentFileName: String = "默认音乐"
+        private set
+    var currentPositionMs: Int = 0
+        private set
+
+    /** Derived: progress as fraction 0..1 */
+    val seekPosition: Float
+        get() = if (duration > 0) currentPositionMs.toFloat() / duration else 0f
+
     var onStateChanged: (() -> Unit)? = null
 
     private fun notifyChanged() {
@@ -30,16 +36,17 @@ object AudioManager {
     }
 
     fun play(context: Context, sourcePath: String?) {
-        // Stop any existing playback first
         stopInternal()
 
         currentContext = context.applicationContext
+        currentSourcePath = sourcePath
         hasError = false
 
         val mp = try {
             if (!sourcePath.isNullOrEmpty()) {
                 val file = File(sourcePath)
                 if (file.exists()) {
+                    currentFileName = file.name
                     val m = MediaPlayer()
                     m.setDataSource(sourcePath)
                     m.prepare()
@@ -50,6 +57,8 @@ object AudioManager {
                     null
                 }
             } else {
+                currentFileName = "默认音乐"
+                currentSourcePath = null
                 val m = MediaPlayer.create(context, R.raw.mothers_day_audio)
                 if (m != null) {
                     m.setOnCompletionListener { this@AudioManager.isPlaying = false; notifyChanged() }
@@ -67,6 +76,7 @@ object AudioManager {
         if (mp != null) {
             mediaPlayer = mp
             duration = mp.duration
+            currentPositionMs = 0
             mp.start()
             isPlaying = true
         }
@@ -85,11 +95,14 @@ object AudioManager {
         notifyChanged()
     }
 
-    fun currentPosition(): Int {
-        return try { mediaPlayer?.currentPosition ?: 0 } catch (_: Exception) { 0 }
+    /** Call from composable polling loop to sync position */
+    fun pollPosition() {
+        currentPositionMs = try { mediaPlayer?.currentPosition ?: 0 } catch (_: Exception) { 0 }
     }
 
-    fun seekTo(ms: Int) {
+    fun seekToFraction(fraction: Float) {
+        val ms = (fraction * duration).toInt().coerceIn(0, duration)
+        currentPositionMs = ms
         try { mediaPlayer?.seekTo(ms) } catch (_: Exception) { }
         notifyChanged()
     }
@@ -105,6 +118,9 @@ object AudioManager {
         mediaPlayer = null
         isPlaying = false
         duration = 0
+        currentPositionMs = 0
         hasError = false
+        currentSourcePath = null
+        currentFileName = "默认音乐"
     }
 }

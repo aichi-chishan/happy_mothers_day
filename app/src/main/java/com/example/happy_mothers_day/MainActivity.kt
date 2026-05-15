@@ -186,6 +186,11 @@ fun MainApp(
                         popUpTo("home") { inclusive = false }
                     }
                 },
+                onNavigateToPlayerUri = { encodedUri ->
+                    navController.navigate("player?autoPlay=false&uri=$encodedUri") {
+                        popUpTo("home") { inclusive = false }
+                    }
+                },
                 onNavigateToSettings = {
                     navController.navigate("settings") {
                         popUpTo("home") { inclusive = false }
@@ -201,6 +206,7 @@ fun MainApp(
 
         composable("settings") {
             SettingsScreen(
+                nfcHelper = nfcHelper,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToLearning = {
                     navController.navigate("learning") {

@@ -55,13 +55,33 @@ fun NfcLearningScreen(
     var capturedTagId by remember { mutableStateOf("") }
     var isCopying by remember { mutableStateOf(false) }
     var nfcAvailable by remember { mutableStateOf(nfcHelper.isNfcAvailable()) }
+    var duplicateMessage by remember { mutableStateOf<String?>(null) }
+
+    val HARDCODED_DEFAULT = "04669e70d32a81"
 
     val registerCapture: () -> Unit = {
         nfcAvailable = nfcHelper.isNfcAvailable()
+        duplicateMessage = null
         nfcHelper.captureNextTag { tagId ->
-            capturedTagId = tagId
-            storage.saveMapping(tagId, selectedUri, selectedFileName)
-            step = 3
+            val normalized = tagId.lowercase()
+            // Check for duplicates
+            when {
+                normalized == HARDCODED_DEFAULT -> {
+                    duplicateMessage = "此线圈是系统默认线圈\n无需学习即可播放默认音乐\n请换一个NFC线圈"
+                }
+                storage.getDefaultTagId()?.lowercase() == normalized -> {
+                    duplicateMessage = "此线圈已被设为默认线圈\n已在\"读取线圈数据\"中设置\n请换一个NFC线圈"
+                }
+                storage.getMapping(tagId) != null -> {
+                    val existing = storage.getMapping(tagId)!!
+                    duplicateMessage = "此线圈已绑定过音频\n→ ${existing.fileName}\n请换一个NFC线圈或先删除旧绑定"
+                }
+                else -> {
+                    capturedTagId = tagId
+                    storage.saveMapping(tagId, selectedUri, selectedFileName)
+                    step = 3
+                }
+            }
         }
     }
 
@@ -257,6 +277,23 @@ fun NfcLearningScreen(
                             style = MaterialTheme.typography.bodyMedium.copy(color = Color.Gray),
                             textAlign = TextAlign.Center
                         )
+                    }
+
+                    // Duplicate warning
+                    duplicateMessage?.let { msg ->
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE))
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(text = msg, style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFFC62828), fontWeight = FontWeight.Medium), textAlign = TextAlign.Center)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                OutlinedButton(onClick = { duplicateMessage = null }, shape = RoundedCornerShape(24.dp)) {
+                                    Text("知道了，换一个标签")
+                                }
+                            }
+                        }
                     }
                 }
 

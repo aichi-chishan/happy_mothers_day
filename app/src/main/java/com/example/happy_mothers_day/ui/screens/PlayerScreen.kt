@@ -99,7 +99,8 @@ fun PlayerScreen(
     LaunchedEffect(isPlaying) {
         while (isPlaying) {
             try {
-                currentPosition = AudioManager.currentPosition()
+                AudioManager.pollPosition()
+                currentPosition = AudioManager.currentPositionMs
                 if (!isSeeking && duration > 0) {
                     seekPosition = currentPosition.toFloat() / duration
                 }
@@ -119,7 +120,7 @@ fun PlayerScreen(
     }
     val onSeekEnd: () -> Unit = {
         isSeeking = false
-        AudioManager.seekTo(currentPosition)
+        AudioManager.seekToFraction(seekPosition)
     }
 
     Box(

@@ -9,29 +9,32 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Nfc
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -42,9 +45,13 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -58,20 +65,24 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import com.example.happy_mothers_day.audio.AudioManager
 import com.example.happy_mothers_day.ui.theme.DeepRose
 import com.example.happy_mothers_day.ui.theme.RosePink
 import com.example.happy_mothers_day.ui.theme.RosePinkLight
 import com.example.happy_mothers_day.ui.theme.SoftPinkBg
 import com.example.happy_mothers_day.ui.theme.WarmGold
+import kotlinx.coroutines.delay
 
 @Composable
 fun HomeScreen(
     isNfcAvailable: Boolean,
     isNfcEnabled: Boolean,
     onNavigateToPlayer: () -> Unit,
+    onNavigateToPlayerUri: (String) -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToTagReader: () -> Unit,
     modifier: Modifier = Modifier
@@ -80,6 +91,28 @@ fun HomeScreen(
     var menuExpanded by remember { mutableStateOf(false) }
     val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
+    // --- Mini player state ---
+    var miniVisible by remember { mutableStateOf(false) }
+    var miniPlaying by remember { mutableStateOf(false) }
+    var miniDuration by remember { mutableIntStateOf(0) }
+    var miniPosition by remember { mutableIntStateOf(0) }
+    var miniFileName by remember { mutableStateOf("") }
+    var miniSource by remember { mutableStateOf<String?>(null) }
+
+    // Poll AudioManager for mini player
+    LaunchedEffect(Unit) {
+        while (true) {
+            miniVisible = AudioManager.duration > 0
+            miniPlaying = AudioManager.isPlaying
+            miniDuration = AudioManager.duration
+            AudioManager.pollPosition()
+            miniPosition = AudioManager.currentPositionMs
+            miniFileName = AudioManager.currentFileName
+            miniSource = AudioManager.currentSourcePath
+            delay(300)
+        }
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         // Gradient background
         Box(
@@ -87,11 +120,7 @@ fun HomeScreen(
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(
-                            SoftPinkBg,
-                            RosePinkLight,
-                            RosePinkLight.copy(alpha = 0.5f)
-                        )
+                        colors = listOf(SoftPinkBg, RosePinkLight, RosePinkLight.copy(alpha = 0.5f))
                     )
                 )
         )
@@ -100,25 +129,14 @@ fun HomeScreen(
 
         // Menu button (top-right, on top of all content)
         Row(
-            modifier = Modifier.fillMaxWidth().zIndex(100f).padding(
-                top = statusBarHeight + 8.dp,
-                end = 16.dp
-            ),
+            modifier = Modifier.fillMaxWidth().zIndex(100f).padding(top = statusBarHeight + 8.dp, end = 16.dp),
             horizontalArrangement = Arrangement.End
         ) {
             Box {
                 IconButton(onClick = { menuExpanded = true }) {
-                    Icon(
-                        imageVector = Icons.Filled.MoreVert,
-                        contentDescription = "菜单",
-                        tint = DeepRose,
-                        modifier = Modifier.size(28.dp)
-                    )
+                    Icon(imageVector = Icons.Filled.MoreVert, contentDescription = "菜单", tint = DeepRose, modifier = Modifier.size(28.dp))
                 }
-                DropdownMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false }
-                ) {
+                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                     DropdownMenuItem(
                         text = { Text("播放音频") },
                         onClick = { menuExpanded = false; onNavigateToPlayer() },
@@ -139,282 +157,242 @@ fun HomeScreen(
         }
 
         if (isLandscape) {
-            LandscapeLayout(
-                isNfcAvailable = isNfcAvailable,
-                isNfcEnabled = isNfcEnabled,
-                onNavigateToPlayer = onNavigateToPlayer
-            )
+            LandscapeLayout(isNfcAvailable, isNfcEnabled, onNavigateToPlayer)
         } else {
-            PortraitLayout(
-                isNfcAvailable = isNfcAvailable,
-                isNfcEnabled = isNfcEnabled,
-                onNavigateToPlayer = onNavigateToPlayer
+            PortraitLayout(isNfcAvailable, isNfcEnabled, onNavigateToPlayer)
+        }
+
+        // Mini player at bottom
+        if (miniVisible) {
+            Box(modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter).zIndex(99f)) {
+                MiniPlayer(
+                fileName = miniFileName,
+                isPlaying = miniPlaying,
+                duration = miniDuration,
+                position = miniPosition,
+                source = miniSource,
+                onPlayPause = { AudioManager.togglePause() },
+                onSeek = { AudioManager.seekToFraction(it) },
+                onNavigateToPlayer = {
+                    val uri = miniSource
+                    if (uri != null) {
+                        val encoded = java.net.URLEncoder.encode(uri, "UTF-8")
+                        onNavigateToPlayerUri(encoded)
+                    } else {
+                        onNavigateToPlayer()
+                    }
+                }
             )
         }
+    }
     }
 }
 
 @Composable
-private fun PortraitLayout(
-    isNfcAvailable: Boolean,
-    isNfcEnabled: Boolean,
+private fun MiniPlayer(
+    fileName: String,
+    isPlaying: Boolean,
+    duration: Int,
+    position: Int,
+    source: String?,
+    onPlayPause: () -> Unit,
+    onSeek: (Float) -> Unit,
     onNavigateToPlayer: () -> Unit
 ) {
-    Column(
+    val fraction = if (duration > 0) position.toFloat() / duration else 0f
+    var seekDrag by remember { mutableStateOf(false) }
+    var dragFraction by remember { mutableStateOf(fraction) }
+    val displayFraction = if (seekDrag) dragFraction else fraction
+    val displayMs = if (seekDrag) (dragFraction * duration).toInt() else position
+
+    Card(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp)
-            .verticalScroll(rememberScrollState()),
+            .fillMaxWidth()
+            .clickable(
+                enabled = !seekDrag,
+                onClickLabel = "查看播放详情"
+            ) { onNavigateToPlayer() },
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.92f))
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+            // Title row
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Filled.MusicNote,
+                    contentDescription = null,
+                    tint = RosePink,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = fileName,
+                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Progress bar (larger, tappable)
+            Slider(
+                value = displayFraction,
+                onValueChange = {
+                    seekDrag = true
+                    dragFraction = it
+                },
+                onValueChangeFinished = {
+                    seekDrag = false
+                    onSeek(dragFraction)
+                },
+                modifier = Modifier.fillMaxWidth().height(28.dp),
+                colors = SliderDefaults.colors(
+                    thumbColor = RosePink,
+                    activeTrackColor = RosePink,
+                    inactiveTrackColor = RosePinkLight.copy(alpha = 0.3f)
+                )
+            )
+
+            // Time + Play button row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = formatMiniTime(displayMs),
+                    style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray, fontSize = 11.sp)
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                IconButton(
+                    onClick = onPlayPause,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                        contentDescription = if (isPlaying) "暂停" else "播放",
+                        tint = RosePink,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = formatMiniTime(duration),
+                    style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray, fontSize = 11.sp)
+                )
+            }
+        }
+    }
+}
+
+private fun formatMiniTime(ms: Int): String {
+    if (ms <= 0) return "0:00"
+    val sec = ms / 1000
+    return "${sec / 60}:${(sec % 60).toString().padStart(2, '0')}"
+}
+
+@Composable
+private fun PortraitLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNavigateToPlayer: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp).verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.height(60.dp))
-
-        Text(
-            text = "母亲节快乐",
-            style = MaterialTheme.typography.headlineLarge.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = 36.sp,
-                color = DeepRose
-            ),
-            textAlign = TextAlign.Center
-        )
-
+        Text("母亲节快乐", style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, fontSize = 36.sp, color = DeepRose), textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = "妈妈，我爱您",
-            style = MaterialTheme.typography.titleLarge.copy(
-                color = RosePink,
-                fontWeight = FontWeight.Medium
-            ),
-            textAlign = TextAlign.Center
-        )
-
+        Text("妈妈，我爱您", style = MaterialTheme.typography.titleLarge.copy(color = RosePink, fontWeight = FontWeight.Medium), textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = "Happy Mother's Day",
-            style = MaterialTheme.typography.titleMedium.copy(
-                color = RosePink.copy(alpha = 0.7f)
-            ),
-            textAlign = TextAlign.Center
-        )
-
+        Text("Happy Mother's Day", style = MaterialTheme.typography.titleMedium.copy(color = RosePink.copy(alpha = 0.7f)), textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.weight(1f))
-
-        NfcCard(
-            isNfcAvailable = isNfcAvailable,
-            isNfcEnabled = isNfcEnabled
-        )
-
+        NfcCard(isNfcAvailable, isNfcEnabled)
         Spacer(modifier = Modifier.height(24.dp))
-
         if (!isNfcAvailable || !isNfcEnabled) {
-            Button(
-                onClick = onNavigateToPlayer,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = RosePink)
-            ) {
+            Button(onClick = onNavigateToPlayer, modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(24.dp), colors = ButtonDefaults.buttonColors(containerColor = RosePink)) {
                 Icon(Icons.Filled.MusicNote, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("直接播放音频", fontWeight = FontWeight.Medium)
             }
         }
-
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(100.dp)) // room for mini player
     }
 }
 
 @Composable
-private fun LandscapeLayout(
-    isNfcAvailable: Boolean,
-    isNfcEnabled: Boolean,
-    onNavigateToPlayer: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Left side: title + subtitle + play button
-        Column(
-            modifier = Modifier.weight(1f).padding(start = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "母亲节快乐",
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 28.sp,
-                    color = DeepRose
-                ),
-                textAlign = TextAlign.Center
-            )
-
+private fun LandscapeLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNavigateToPlayer: () -> Unit) {
+    Row(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(modifier = Modifier.weight(1f).padding(start = 24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Text("母亲节快乐", style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, fontSize = 28.sp, color = DeepRose), textAlign = TextAlign.Center)
             Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "妈妈，我爱您",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    color = RosePink,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 18.sp
-                ),
-                textAlign = TextAlign.Center
-            )
-
+            Text("妈妈，我爱您", style = MaterialTheme.typography.titleLarge.copy(color = RosePink, fontWeight = FontWeight.Medium, fontSize = 18.sp), textAlign = TextAlign.Center)
             Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = "Happy Mother's Day",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    color = RosePink.copy(alpha = 0.7f),
-                    fontSize = 14.sp
-                ),
-                textAlign = TextAlign.Center
-            )
-
+            Text("Happy Mother's Day", style = MaterialTheme.typography.titleMedium.copy(color = RosePink.copy(alpha = 0.7f), fontSize = 14.sp), textAlign = TextAlign.Center)
             Spacer(modifier = Modifier.height(24.dp))
-
             if (!isNfcAvailable || !isNfcEnabled) {
-                Button(
-                    onClick = onNavigateToPlayer,
-                    modifier = Modifier.fillMaxWidth().height(40.dp),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = RosePink)
-                ) {
+                Button(onClick = onNavigateToPlayer, modifier = Modifier.fillMaxWidth().height(40.dp), shape = RoundedCornerShape(20.dp), colors = ButtonDefaults.buttonColors(containerColor = RosePink)) {
                     Icon(Icons.Filled.MusicNote, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("直接播放音频", fontWeight = FontWeight.Medium, fontSize = 14.sp)
                 }
             }
         }
-
         Spacer(modifier = Modifier.width(16.dp))
-
-        // Right side: NFC card
-        Column(
-            modifier = Modifier.weight(1f).padding(end = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            NfcCard(isNfcAvailable = isNfcAvailable, isNfcEnabled = isNfcEnabled)
+        Column(modifier = Modifier.weight(1f).padding(end = 24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            NfcCard(isNfcAvailable, isNfcEnabled)
         }
     }
 }
 
 @Composable
 private fun NfcCard(isNfcAvailable: Boolean, isNfcEnabled: Boolean) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(8.dp, RoundedCornerShape(20.dp)),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.85f))
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Nfc,
-                contentDescription = "NFC",
-                tint = if (isNfcAvailable && isNfcEnabled) RosePink else Color.Gray,
-                modifier = Modifier.size(40.dp)
-            )
-
+    Card(modifier = Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(20.dp)), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.85f))) {
+        Column(modifier = Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(imageVector = Icons.Filled.Nfc, contentDescription = "NFC", tint = if (isNfcAvailable && isNfcEnabled) RosePink else Color.Gray, modifier = Modifier.size(40.dp))
             Spacer(modifier = Modifier.height(12.dp))
-
             val (statusText, statusColor) = when {
                 !isNfcAvailable -> "手机不支持NFC功能\n可通过右上角菜单播放音频" to Color.Gray
                 !isNfcEnabled -> "NFC功能未开启\n请在设置中打开NFC" to WarmGold
                 else -> "NFC已就绪\n将手机靠近线圈即可播放" to RosePink
             }
-
-            Text(
-                text = statusText,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Medium,
-                    color = statusColor
-                ),
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
+            Text(text = statusText, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium, color = statusColor), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
         }
     }
 }
 
+// --- FloatingHearts (unchanged) ---
+
 @Composable
 private fun FloatingHearts() {
     val infiniteTransition = rememberInfiniteTransition(label = "floating_hearts")
-
     val hearts = remember {
         listOf(
-            HeartData(0.08f, 14f, 3000),
-            HeartData(0.25f, 10f, 4000),
-            HeartData(0.42f, 16f, 3500),
-            HeartData(0.58f, 12f, 4200),
-            HeartData(0.75f, 15f, 3800),
-            HeartData(0.92f, 9f, 4500),
-            HeartData(0.15f, 11f, 3300),
-            HeartData(0.85f, 13f, 3600),
+            HeartData(0.08f, 14f, 3000), HeartData(0.25f, 10f, 4000), HeartData(0.42f, 16f, 3500), HeartData(0.58f, 12f, 4200),
+            HeartData(0.75f, 15f, 3800), HeartData(0.92f, 9f, 4500), HeartData(0.15f, 11f, 3300), HeartData(0.85f, 13f, 3600),
         )
     }
-
     Box(modifier = Modifier.fillMaxSize()) {
         hearts.forEach { heart ->
             val animY by infiniteTransition.animateFloat(
-                initialValue = 1.1f,
-                targetValue = -0.1f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(heart.duration, easing = FastOutSlowInEasing),
-                    repeatMode = RepeatMode.Restart
-                ),
+                initialValue = 1.1f, targetValue = -0.1f,
+                animationSpec = infiniteRepeatable(animation = tween(heart.duration, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Restart),
                 label = "heart_float_${heart.xFraction}"
             )
-
             val opacity by infiniteTransition.animateFloat(
-                initialValue = 0.3f,
-                targetValue = 0.8f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(heart.duration / 2, easing = FastOutSlowInEasing),
-                    repeatMode = RepeatMode.Reverse
-                ),
+                initialValue = 0.3f, targetValue = 0.8f,
+                animationSpec = infiniteRepeatable(animation = tween(heart.duration / 2, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse),
                 label = "heart_opacity_${heart.xFraction}"
             )
-
             Canvas(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .offset(
-                        x = ((heart.xFraction - 0.5f) * 300).dp,
-                        y = ((animY - 0.5f) * 500).dp
-                    )
-                    .size((heart.sizeDp * 2).dp)
+                modifier = Modifier.fillMaxSize().offset(x = ((heart.xFraction - 0.5f) * 300).dp, y = ((animY - 0.5f) * 500).dp).size((heart.sizeDp * 2).dp)
             ) {
-                val hr = size.width / 2
-                val cx = center.x
-                val cy = center.y
-
+                val hr = size.width / 2; val cx = center.x; val cy = center.y
                 drawCircle(Color(0xFFE91E63).copy(alpha = opacity), hr * 0.45f, Offset(cx - hr * 0.32f, cy - hr * 0.15f))
                 drawCircle(Color(0xFFE91E63).copy(alpha = opacity), hr * 0.45f, Offset(cx + hr * 0.32f, cy - hr * 0.15f))
-                val path = Path().apply {
-                    moveTo(cx - hr * 0.7f, cy - hr * 0.05f)
-                    lineTo(cx + hr * 0.7f, cy - hr * 0.05f)
-                    lineTo(cx, cy + hr * 0.7f)
-                    close()
-                }
+                val path = Path().apply { moveTo(cx - hr * 0.7f, cy - hr * 0.05f); lineTo(cx + hr * 0.7f, cy - hr * 0.05f); lineTo(cx, cy + hr * 0.7f); close() }
                 drawPath(path, Color(0xFFE91E63).copy(alpha = opacity))
             }
         }
     }
 }
 
-private data class HeartData(
-    val xFraction: Float,
-    val sizeDp: Float,
-    val duration: Int
-)
+private data class HeartData(val xFraction: Float, val sizeDp: Float, val duration: Int)
