@@ -193,16 +193,17 @@ fun HomeScreen(
             PortraitLayout(isNfcAvailable, isNfcEnabled, onNavigateToPlayer, miniVisible)
         }
 
-        // Mini player — floating above bottom
+        // Mini player — floating above bottom (compact in landscape)
         if (miniVisible) {
-            Box(modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter).padding(horizontal = 24.dp, vertical = 12.dp).zIndex(99f)) {
+            Box(modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter)
+                .padding(horizontal = 24.dp, vertical = if (isLandscape) 4.dp else 12.dp).zIndex(99f)) {
                 MiniPlayer(
                 fileName = miniFileName,
                 isPlaying = miniPlaying,
                 duration = miniDuration,
                 position = miniPosition,
                 source = miniSource,
-                onPlayPause = { AudioManager.togglePause() },
+                onPlayPause = { AudioManager.togglePause(); miniPlaying = AudioManager.isPlaying },
                 onSeek = { AudioManager.seekToFraction(it) },
                 onNavigateToPlayer = {
                     val uri = miniSource

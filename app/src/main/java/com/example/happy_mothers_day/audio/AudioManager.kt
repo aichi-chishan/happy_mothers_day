@@ -2,6 +2,8 @@ package com.example.happy_mothers_day.audio
 
 import android.content.Context
 import android.media.MediaPlayer
+import android.os.Handler
+import android.os.Looper
 import com.example.happy_mothers_day.R
 import java.io.File
 
@@ -9,6 +11,7 @@ object AudioManager {
 
     private var mediaPlayer: MediaPlayer? = null
     private var currentContext: Context? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     var isPlaying: Boolean = false
         private set
@@ -17,7 +20,6 @@ object AudioManager {
     var hasError: Boolean = false
         private set
 
-    /** null = built-in default, non-null = custom file path */
     var currentSourcePath: String? = null
         private set
     var currentFileName: String = "默认音乐"
@@ -25,19 +27,17 @@ object AudioManager {
     var currentPositionMs: Int = 0
         private set
 
-    /** Derived: progress as fraction 0..1 */
-    val seekPosition: Float
-        get() = if (duration > 0) currentPositionMs.toFloat() / duration else 0f
-
     var onStateChanged: (() -> Unit)? = null
 
+    /** Post notification to main thread — safe from any thread */
     private fun notifyChanged() {
-        onStateChanged?.invoke()
+        mainHandler.post {
+            onStateChanged?.invoke()
+        }
     }
 
     fun play(context: Context, sourcePath: String?) {
         stopInternal()
-
         currentContext = context.applicationContext
         currentSourcePath = sourcePath
         hasError = false
@@ -52,10 +52,7 @@ object AudioManager {
                     m.prepare()
                     m.setOnCompletionListener { this@AudioManager.isPlaying = false; notifyChanged() }
                     m
-                } else {
-                    hasError = true
-                    null
-                }
+                } else { hasError = true; null }
             } else {
                 currentFileName = "默认音乐"
                 currentSourcePath = null
@@ -63,15 +60,9 @@ object AudioManager {
                 if (m != null) {
                     m.setOnCompletionListener { this@AudioManager.isPlaying = false; notifyChanged() }
                     m
-                } else {
-                    hasError = true
-                    null
-                }
+                } else { hasError = true; null }
             }
-        } catch (e: Exception) {
-            hasError = true
-            null
-        }
+        } catch (_: Exception) { hasError = true; null }
 
         if (mp != null) {
             mediaPlayer = mp
@@ -84,18 +75,26 @@ object AudioManager {
     }
 
     fun togglePause() {
-        val mp = mediaPlayer ?: return
-        if (isPlaying) {
-            mp.pause()
-            isPlaying = false
-        } else {
-            mp.start()
-            isPlaying = true
+        val mp = mediaPlayer
+        if (mp == null) {
+            hasError = true
+            notifyChanged()
+            return
+        }
+        try {
+            if (isPlaying) {
+                mp.pause()
+                isPlaying = false
+            } else {
+                mp.start()
+                isPlaying = true
+            }
+        } catch (_: Exception) {
+            hasError = true
         }
         notifyChanged()
     }
 
-    /** Call from composable polling loop to sync position */
     fun pollPosition() {
         currentPositionMs = try { mediaPlayer?.currentPosition ?: 0 } catch (_: Exception) { 0 }
     }
