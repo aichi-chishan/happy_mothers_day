@@ -88,9 +88,10 @@ fun NfcTagReaderScreen(
                     modifier = Modifier.weight(1f)
                 )
                 Text(
-                    text = if (nfcAvailable) "NFC ✓" else "NFC ✗",
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        color = if (nfcAvailable) com.example.happy_mothers_day.ui.theme.RosePink else Color.Gray
+                    text = if (nfcAvailable) "NFC已开启 ✓" else "NFC未开启 ✗",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = if (nfcAvailable) com.example.happy_mothers_day.ui.theme.RosePink else Color.Gray,
+                        fontWeight = FontWeight.Medium
                     ),
                     modifier = Modifier.padding(end = 8.dp)
                 )

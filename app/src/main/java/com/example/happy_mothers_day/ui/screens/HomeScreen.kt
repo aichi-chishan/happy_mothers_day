@@ -169,7 +169,7 @@ fun HomeScreen(
                         onDismissRequest = { showAbout = false },
                         title = { Text("关于此APP", fontWeight = FontWeight.Bold, color = DeepRose) },
                         text = {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text("母亲节快乐", style = MaterialTheme.typography.titleMedium.copy(color = RosePink, fontWeight = FontWeight.Medium))
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text("这是献给妈妈的母亲节礼物", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
@@ -190,7 +190,7 @@ fun HomeScreen(
         if (isLandscape) {
             LandscapeLayout(isNfcAvailable, isNfcEnabled, onNavigateToPlayer)
         } else {
-            PortraitLayout(isNfcAvailable, isNfcEnabled, onNavigateToPlayer)
+            PortraitLayout(isNfcAvailable, isNfcEnabled, onNavigateToPlayer, miniVisible)
         }
 
         // Mini player — floating above bottom
@@ -325,9 +325,13 @@ private fun formatMiniTime(ms: Int): String {
 }
 
 @Composable
-private fun PortraitLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNavigateToPlayer: () -> Unit) {
+private fun PortraitLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNavigateToPlayer: () -> Unit, miniVisible: Boolean) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp).verticalScroll(rememberScrollState()),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp)
+            .padding(bottom = if (miniVisible) 90.dp else 0.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.height(60.dp))
@@ -346,7 +350,7 @@ private fun PortraitLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNav
             Spacer(modifier = Modifier.height(12.dp))
         }
         NfcCard(isNfcAvailable, isNfcEnabled)
-        Spacer(modifier = Modifier.height(110.dp)) // room for floating mini player
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
@@ -398,8 +402,9 @@ private fun FloatingHearts() {
     val infiniteTransition = rememberInfiniteTransition(label = "floating_hearts")
     val hearts = remember {
         listOf(
-            HeartData(0.08f, 14f, 3000), HeartData(0.25f, 10f, 4000), HeartData(0.42f, 16f, 3500), HeartData(0.58f, 12f, 4200),
-            HeartData(0.75f, 15f, 3800), HeartData(0.92f, 9f, 4500), HeartData(0.15f, 11f, 3300), HeartData(0.85f, 13f, 3600),
+            HeartData(0.05f, 20f, 3000), HeartData(0.20f, 16f, 4000), HeartData(0.35f, 22f, 3500), HeartData(0.50f, 17f, 4200),
+            HeartData(0.65f, 21f, 3800), HeartData(0.80f, 15f, 4500), HeartData(0.10f, 18f, 3300), HeartData(0.90f, 19f, 3600),
+            HeartData(0.30f, 14f, 4100), HeartData(0.70f, 20f, 3900),
         )
     }
     Box(modifier = Modifier.fillMaxSize()) {
@@ -415,7 +420,7 @@ private fun FloatingHearts() {
                 label = "heart_opacity_${heart.xFraction}"
             )
             Canvas(
-                modifier = Modifier.offset(x = ((heart.xFraction - 0.5f) * 300).dp, y = ((animY - 0.5f) * 500).dp).size((heart.sizeDp * 2f).dp)
+                modifier = Modifier.offset(x = ((heart.xFraction - 0.5f) * 450).dp, y = ((animY - 0.5f) * 600).dp).size((heart.sizeDp * 2.5f).dp)
             ) {
                 val w = size.width
                 val h = size.height
