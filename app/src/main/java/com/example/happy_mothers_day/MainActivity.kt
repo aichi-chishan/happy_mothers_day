@@ -1,12 +1,17 @@
 package com.example.happy_mothers_day
 
+import android.content.Intent
+import android.nfc.NfcAdapter
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -40,6 +45,9 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+
+        // Handle NFC tag discovered while activity was being created
+        intent?.let { handleNfcIntent(it) }
     }
 
     override fun onResume() {
@@ -52,11 +60,24 @@ class MainActivity : ComponentActivity() {
         nfcHelper.stopNfcReader()
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        // System dispatched NFC tag via intent (e.g. during NFC toggle)
+        handleNfcIntent(intent)
+    }
+
     private fun refreshNfcReader() {
         if (nfcHelper.isNfcAvailable()) {
             nfcHelper.startNfcReader { tagId ->
                 nfcCallback?.invoke(tagId)
             }
+        }
+    }
+
+    private fun handleNfcIntent(intent: Intent) {
+        val tagId = nfcHelper.extractTagId(intent)
+        if (tagId != null) {
+            nfcCallback?.invoke(tagId)
         }
     }
 }
@@ -71,11 +92,12 @@ fun MainApp(
     val tagStorage = remember { TagAudioStorage(context) }
 
     val isNfcAvailable = remember { nfcHelper.isNfcSupported() }
-    val isNfcEnabled = remember { nfcHelper.isNfcAvailable() }
+    var isNfcEnabled by remember { mutableStateOf(nfcHelper.isNfcAvailable()) }
 
+    // Refresh NFC status when returning from settings/quick-settings
     DisposableEffect(navController) {
         registerNfcCallback?.invoke { tagId ->
-            // Check if this tag has a mapped audio
+            isNfcEnabled = nfcHelper.isNfcAvailable()
             val mapping = tagStorage.getMapping(tagId)
             if (mapping != null) {
                 val encodedUri = java.net.URLEncoder.encode(mapping.audioUri, "UTF-8")
