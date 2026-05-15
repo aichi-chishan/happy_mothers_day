@@ -1,21 +1,22 @@
 package com.example.happy_mothers_day.ui.screens
 
 import android.content.Context
+import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Nfc
-import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,7 +34,10 @@ import com.example.happy_mothers_day.ui.theme.DeepRose
 import com.example.happy_mothers_day.ui.theme.RosePink
 import com.example.happy_mothers_day.ui.theme.RosePinkLight
 import com.example.happy_mothers_day.ui.theme.SoftPinkBg
-import android.provider.OpenableColumns
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 
 @Composable
 fun NfcLearningScreen(
@@ -42,31 +46,50 @@ fun NfcLearningScreen(
 ) {
     val context = LocalContext.current
     val storage = remember { TagAudioStorage(context) }
+    val scope = rememberCoroutineScope()
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    var step by remember { mutableStateOf(1) } // 1=pick file, 2=scan tag, 3=done
+    var step by remember { mutableStateOf(1) }
     var selectedUri by remember { mutableStateOf("") }
     var selectedFileName by remember { mutableStateOf("") }
     var capturedTagId by remember { mutableStateOf("") }
+    var isCopying by remember { mutableStateOf(false) }
+    var nfcAvailable by remember { mutableStateOf(nfcHelper.isNfcAvailable()) }
+
+    val registerCapture: () -> Unit = {
+        nfcAvailable = nfcHelper.isNfcAvailable()
+        nfcHelper.captureNextTag { tagId ->
+            capturedTagId = tagId
+            storage.saveMapping(tagId, selectedUri, selectedFileName)
+            step = 3
+        }
+    }
 
     val filePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
-        uri?.let {
-            selectedUri = it.toString()
-            selectedFileName = getFileName(context, it)
-            // Take persistable permission
-            context.contentResolver.takePersistableUriPermission(
-                it,
-                android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
-            )
-            step = 2
-            // Start waiting for NFC tag
-            nfcHelper.captureNextTag { tagId ->
-                capturedTagId = tagId
-                storage.saveMapping(tagId, selectedUri, selectedFileName)
-                step = 3
+        uri?.let { contentUri ->
+            selectedFileName = getFileName(context, contentUri)
+            isCopying = true
+            scope.launch {
+                val localPath = copyToAppStorage(context, contentUri, selectedFileName)
+                selectedUri = localPath
+                isCopying = false
+                step = 2
+                registerCapture()
             }
         }
+    }
+
+    // Re-register NFC capture when returning from quick-settings (e.g. user toggled NFC)
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && step == 2 && capturedTagId.isEmpty()) {
+                registerCapture()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -84,7 +107,6 @@ fun NfcLearningScreen(
             modifier = Modifier.fillMaxSize().padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -108,7 +130,6 @@ fun NfcLearningScreen(
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            // Step indicators
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
@@ -123,10 +144,7 @@ fun NfcLearningScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("选择音频", fontSize = 10.sp, color = DeepRose, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
                 Text("扫描标签", fontSize = 10.sp, color = DeepRose, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
                 Text("完成绑定", fontSize = 10.sp, color = DeepRose, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
@@ -134,7 +152,6 @@ fun NfcLearningScreen(
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            // Main content per step
             when (step) {
                 1 -> {
                     Icon(
@@ -153,29 +170,35 @@ fun NfcLearningScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "从手机中选择一个音频文件\n作为此NFC标签的专属音乐",
+                        text = "从手机中选择一个音频文件\n文件会自动复制到应用内部存储",
                         style = MaterialTheme.typography.bodyMedium.copy(color = Color.Gray),
                         textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(32.dp))
-                    Button(
-                        onClick = { filePicker.launch(arrayOf("audio/*")) },
-                        modifier = Modifier.height(48.dp),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = RosePink)
-                    ) {
-                        Icon(Icons.Filled.MusicNote, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("选择音频文件", fontWeight = FontWeight.Medium)
+
+                    if (isCopying) {
+                        CircularProgressIndicator(color = RosePink)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("正在复制文件...", color = Color.Gray)
+                    } else {
+                        Button(
+                            onClick = { filePicker.launch(arrayOf("audio/*")) },
+                            modifier = Modifier.height(48.dp),
+                            shape = RoundedCornerShape(24.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = RosePink)
+                        ) {
+                            Icon(Icons.Filled.MusicNote, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("选择音频文件", fontWeight = FontWeight.Medium)
+                        }
                     }
                 }
 
                 2 -> {
-                    // Pulse animation hint for NFC
                     Icon(
                         Icons.Filled.Nfc,
                         contentDescription = null,
-                        tint = RosePink,
+                        tint = if (nfcAvailable) RosePink else Color.Gray,
                         modifier = Modifier.size(80.dp)
                     )
                     Spacer(modifier = Modifier.height(24.dp))
@@ -201,11 +224,40 @@ fun NfcLearningScreen(
                         )
                     }
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "请将NFC标签（线圈贴纸、卡片等）\n靠近手机背面进行扫描",
-                        style = MaterialTheme.typography.bodyMedium.copy(color = Color.Gray),
-                        textAlign = TextAlign.Center
-                    )
+
+                    if (!nfcAvailable) {
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "NFC 功能未开启",
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFFE65100)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "请在快捷设置中打开 NFC\n然后返回此页面自动重试",
+                                    style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFFBF360C)),
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                OutlinedButton(onClick = { registerCapture() }) {
+                                    Text("我已开启，重试扫描")
+                                }
+                            }
+                        }
+                    } else {
+                        Text(
+                            text = "请将NFC标签（线圈贴纸、卡片等）\n靠近手机背面进行扫描",
+                            style = MaterialTheme.typography.bodyMedium.copy(color = Color.Gray),
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
 
                 3 -> {
@@ -293,7 +345,7 @@ private fun StepDot(step: Int, active: Boolean) {
     }
 }
 
-private fun getFileName(context: Context, uri: android.net.Uri): String {
+private fun getFileName(context: Context, uri: Uri): String {
     var name = "unknown"
     context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
         val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
@@ -302,4 +354,34 @@ private fun getFileName(context: Context, uri: android.net.Uri): String {
         }
     }
     return name
+}
+
+private suspend fun copyToAppStorage(context: Context, contentUri: Uri, fileName: String): String =
+    withContext(Dispatchers.IO) {
+        val audioDir = File(context.filesDir, "audio")
+        audioDir.mkdirs()
+
+        // Avoid filename collisions
+        val destFile = resolveUniqueFile(audioDir, fileName)
+
+        context.contentResolver.openInputStream(contentUri)?.use { input ->
+            destFile.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        }
+        destFile.absolutePath
+    }
+
+private fun resolveUniqueFile(dir: File, name: String): File {
+    val base = File(dir, name)
+    if (!base.exists()) return base
+    val dot = name.lastIndexOf('.')
+    val stem = if (dot >= 0) name.substring(0, dot) else name
+    val ext = if (dot >= 0) name.substring(dot) else ""
+    var i = 1
+    while (true) {
+        val f = File(dir, "${stem}_$i$ext")
+        if (!f.exists()) return f
+        i++
+    }
 }

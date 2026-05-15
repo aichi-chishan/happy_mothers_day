@@ -1,7 +1,6 @@
 package com.example.happy_mothers_day.ui.screens
 
 import android.media.MediaPlayer
-import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -25,7 +24,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,11 +38,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.example.happy_mothers_day.R
 import com.example.happy_mothers_day.ui.components.RotatingVinyl
 import com.example.happy_mothers_day.ui.theme.RosePink
 import com.example.happy_mothers_day.ui.theme.RosePinkLight
 import com.example.happy_mothers_day.ui.theme.VinylBlack
+import java.io.File
 
 @Composable
 fun PlayerScreen(
@@ -56,15 +57,25 @@ fun PlayerScreen(
     var isPlaying by remember { mutableStateOf(false) }
     var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
     var hasError by remember { mutableStateOf(false) }
+    var playerReady by remember { mutableStateOf(false) }
 
-    // Initialize MediaPlayer
-    DisposableEffect(audioUri) {
+    LaunchedEffect(audioUri) {
+        playerReady = false
+        isPlaying = false
+        mediaPlayer?.release()
+        mediaPlayer = null
+
         val mp = try {
             if (!audioUri.isNullOrEmpty()) {
-                MediaPlayer().apply {
-                    setDataSource(context, Uri.parse(audioUri))
-                    prepare()
-                    setOnCompletionListener { isPlaying = false }
+                val file = File(audioUri)
+                if (file.exists()) {
+                    MediaPlayer().apply {
+                        setDataSource(audioUri)
+                        prepare()
+                        setOnCompletionListener { isPlaying = false }
+                    }
+                } else {
+                    null
                 }
             } else {
                 MediaPlayer.create(context, R.raw.mothers_day_audio)?.apply {
@@ -78,21 +89,17 @@ fun PlayerScreen(
         if (mp == null) {
             hasError = true
         } else {
+            hasError = false
             mediaPlayer = mp
         }
-
-        onDispose {
-            mp?.release()
-        }
+        playerReady = true
     }
 
-    // Auto-play if requested
-    DisposableEffect(autoPlay) {
-        if (autoPlay && mediaPlayer != null && !isPlaying) {
+    LaunchedEffect(playerReady, autoPlay) {
+        if (playerReady && autoPlay && mediaPlayer != null) {
             mediaPlayer?.start()
             isPlaying = true
         }
-        onDispose { }
     }
 
     Box(
@@ -107,25 +114,7 @@ fun PlayerScreen(
                 )
             )
     ) {
-        // Back button
-        IconButton(
-            onClick = {
-                mediaPlayer?.stop()
-                isPlaying = false
-                onNavigateBack()
-            },
-            modifier = Modifier
-                .padding(16.dp)
-                .align(Alignment.TopStart)
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "返回",
-                tint = RosePinkLight,
-                modifier = Modifier.size(28.dp)
-            )
-        }
-
+        // Main content (bottom layer)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -133,7 +122,6 @@ fun PlayerScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Title
             Text(
                 text = "献给妈妈",
                 style = MaterialTheme.typography.headlineMedium.copy(
@@ -156,7 +144,6 @@ fun PlayerScreen(
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            // Rotating vinyl
             RotatingVinyl(
                 isPlaying = isPlaying,
                 size = 260.dp
@@ -171,7 +158,10 @@ fun PlayerScreen(
                 exit = fadeOut()
             ) {
                 Text(
-                    text = "请将音频文件命名为 mothers_day_audio.mp3\n放入 res/raw/ 目录",
+                    text = if (audioUri.isNullOrEmpty())
+                        "请将音频文件命名为 mothers_day_audio.mp3\n放入 res/raw/ 目录"
+                    else
+                        "音频文件不存在或无法播放\n请检查文件是否被移动或删除",
                     style = MaterialTheme.typography.bodySmall.copy(
                         color = Color(0xFFB0B0B0),
                         textAlign = TextAlign.Center
@@ -210,10 +200,30 @@ fun PlayerScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = if (isPlaying) "正在播放..." else "点击播放",
+                text = when {
+                    hasError -> "无法播放"
+                    isPlaying -> "正在播放..."
+                    else -> "点击播放"
+                },
                 style = MaterialTheme.typography.bodyMedium.copy(
                     color = RosePinkLight.copy(alpha = 0.7f)
                 )
+            )
+        }
+
+        // Back button on top layer (drawn last, highest z-index)
+        IconButton(
+            onClick = { onNavigateBack() },
+            modifier = Modifier
+                .padding(16.dp)
+                .align(Alignment.TopStart)
+                .zIndex(10f)
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "返回",
+                tint = RosePinkLight,
+                modifier = Modifier.size(28.dp)
             )
         }
     }
