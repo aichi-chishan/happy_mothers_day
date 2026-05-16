@@ -57,21 +57,19 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        try {
-            enableEdgeToEdge()
-        } catch (_: Exception) {
-            // Fallback for HarmonyOS / older AOSP
-        }
         nfcHelper = NfcHelper(this)
         mediaSessionManager = MediaSessionManager(this)
 
         // Wire media session ↔ audio manager
-        mediaSessionManager.audioCallback = object : MediaSessionManager.AudioCallback {
-            override fun onPlay() { AudioManager.togglePause() }
-            override fun onPause() { AudioManager.togglePause() }
-            override fun onSeekTo(positionMs: Int) { AudioManager.seekToFraction(positionMs.toFloat() / AudioManager.duration) }
-        }
-        AudioManager.mediaCallback = object : AudioManager.MediaCallback {
+        try {
+            mediaSessionManager.audioCallback = object : MediaSessionManager.AudioCallback {
+                override fun onPlay() { AudioManager.togglePause() }
+                override fun onPause() { AudioManager.togglePause() }
+                override fun onSeekTo(positionMs: Int) { AudioManager.seekToFraction(positionMs.toFloat() / AudioManager.duration) }
+            }
+        } catch (_: Exception) { }
+        try {
+            AudioManager.mediaCallback = object : AudioManager.MediaCallback {
             override fun onPlay(durationMs: Int) {
                 mediaSessionManager.updatePlaybackState(true, 0L, durationMs.toLong())
                 mediaSessionManager.updateMetadata("母亲节快乐", "Happy Mother's Day", durationMs.toLong())
@@ -82,7 +80,7 @@ class MainActivity : ComponentActivity() {
             override fun onPositionUpdate(positionMs: Int, durationMs: Int) {
                 mediaSessionManager.updatePosition(positionMs.toLong(), durationMs.toLong())
             }
-        }
+        } } catch (_: Exception) { }
 
         setContent {
             HappyMothersDayTheme {

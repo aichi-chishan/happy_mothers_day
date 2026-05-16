@@ -53,9 +53,14 @@ fun HappyMothersDayTheme(
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
-            val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
+            try {
+                val window = (view.context as? Activity)?.window ?: return@SideEffect
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    @Suppress("DEPRECATION")
+                    window.statusBarColor = colorScheme.primary.toArgb()
+                }
+                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
+            } catch (_: Exception) { }
         }
     }
 
