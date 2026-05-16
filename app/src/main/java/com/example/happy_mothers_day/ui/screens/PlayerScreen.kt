@@ -96,6 +96,9 @@ fun PlayerScreen(
         duration = AudioManager.duration
         if (sameSource || isDefaultBoth) {
             currentPosition = AudioManager.currentPositionMs
+            if (AudioManager.duration > 0) {
+                seekPosition = currentPosition.toFloat() / AudioManager.duration
+            }
         }
     }
 
