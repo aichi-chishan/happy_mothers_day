@@ -22,6 +22,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.happy_mothers_day.audio.AudioManager
+import com.example.happy_mothers_day.media.MediaSessionManager
 import com.example.happy_mothers_day.nfc.NfcHelper
 import com.example.happy_mothers_day.storage.TagAudioStorage
 import com.example.happy_mothers_day.ui.screens.HomeScreen
@@ -39,6 +41,7 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var nfcHelper: NfcHelper
     private var nfcCallback: ((String) -> Unit)? = null
+    private lateinit var mediaSessionManager: MediaSessionManager
 
     private val handler = Handler(Looper.getMainLooper())
     private val pollingRunnable = object : Runnable {
@@ -53,6 +56,19 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         nfcHelper = NfcHelper(this)
+        mediaSessionManager = MediaSessionManager(this)
+
+        // Wire media session ↔ audio manager
+        mediaSessionManager.audioCallback = object : MediaSessionManager.AudioCallback {
+            override fun onPlay() { AudioManager.togglePause() }
+            override fun onPause() { AudioManager.togglePause() }
+            override fun onSeekTo(positionMs: Int) { AudioManager.seekToFraction(positionMs.toFloat() / AudioManager.duration) }
+        }
+        AudioManager.mediaCallback = object : AudioManager.MediaCallback {
+            override fun onPlay() { mediaSessionManager.updatePlaybackState(true) }
+            override fun onPause() { mediaSessionManager.updatePlaybackState(false) }
+            override fun onSeekTo(positionMs: Int) {}
+        }
 
         setContent {
             HappyMothersDayTheme {
@@ -79,6 +95,11 @@ class MainActivity : ComponentActivity() {
         super.onPause()
         handler.removeCallbacks(pollingRunnable)
         nfcHelper.stopNfcReader()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mediaSessionManager.release()
     }
 
     override fun onNewIntent(intent: Intent) {

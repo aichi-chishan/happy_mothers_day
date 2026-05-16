@@ -29,6 +29,13 @@ object AudioManager {
         private set
 
     var onStateChanged: (() -> Unit)? = null
+    var mediaCallback: MediaCallback? = null
+
+    interface MediaCallback {
+        fun onPlay()
+        fun onPause()
+        fun onSeekTo(positionMs: Int)
+    }
 
     /** Thread-safe notification */
     private fun notifyChanged() {
@@ -74,6 +81,7 @@ object AudioManager {
             try {
                 mp.start()
                 isPlaying = true
+                mediaCallback?.onPlay()
             } catch (e: Exception) {
                 Log.e("AudioManager", "start failed", e)
                 hasError = true
@@ -93,9 +101,11 @@ object AudioManager {
             if (isPlaying) {
                 mp.pause()
                 isPlaying = false
+                mediaCallback?.onPause()
             } else {
                 mp.start()
                 isPlaying = true
+                mediaCallback?.onPlay()
             }
         } catch (_: Exception) {
             hasError = true
