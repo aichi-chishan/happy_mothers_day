@@ -3,6 +3,7 @@ package com.example.happy_mothers_day.nfc
 import android.app.Activity
 import android.content.Intent
 import android.nfc.NfcAdapter
+import android.os.Build
 import android.nfc.NfcManager
 import android.content.Context
 import android.util.Log
@@ -69,7 +70,12 @@ class NfcHelper(private val activity: Activity) {
     }
 
     fun extractTagId(intent: Intent): String? {
-        val tag = intent.getParcelableExtra<android.nfc.Tag>(NfcAdapter.EXTRA_TAG, android.nfc.Tag::class.java) ?: return null
+        @Suppress("DEPRECATION")
+        val tag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra(NfcAdapter.EXTRA_TAG, android.nfc.Tag::class.java)
+        } else {
+            intent.getParcelableExtra<android.nfc.Tag>(NfcAdapter.EXTRA_TAG)
+        } ?: return null
         return tag.id.toHexString()
     }
 
