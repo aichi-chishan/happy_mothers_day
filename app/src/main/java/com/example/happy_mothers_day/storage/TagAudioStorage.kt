@@ -18,13 +18,15 @@ class TagAudioStorage(private val context: Context) {
     }
 
     fun removeMapping(tagId: String) {
+        val normalized = tagId.lowercase()
         val all = getAllMappings().toMutableList()
-        all.removeAll { it.tagId == tagId }
+        all.removeAll { it.tagId.lowercase() == normalized }
         writeAll(all)
     }
 
     fun getMapping(tagId: String): TagEntry? {
-        return getAllMappings().find { it.tagId == tagId }
+        val normalized = tagId.lowercase()
+        return getAllMappings().find { it.tagId.lowercase() == normalized }
     }
 
     fun getAllMappings(): List<TagEntry> {

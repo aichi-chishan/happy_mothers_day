@@ -71,26 +71,35 @@ class MediaSessionManager(private val context: Context) {
         } else {
             hideNotification()
         }
+
+        // Update metadata with duration so system shows progress bar
+        if (durationMs > 0) {
+            updateMetadata(null, null, durationMs)
+        }
     }
 
     /** Lightweight position-only update — called periodically during playback */
-    fun updatePosition(positionMs: Long) {
+    fun updatePosition(positionMs: Long, durationMs: Long) {
         lastPositionMs = positionMs
+        lastDurationMs = durationMs
         val state = PlaybackState.Builder()
-            .setState(
-                if (lastDurationMs > 0) PlaybackState.STATE_PLAYING else PlaybackState.STATE_NONE,
-                positionMs, 1f
-            )
-            .setActions(PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or PlaybackState.ACTION_SEEK_TO or PlaybackState.ACTION_STOP)
-        if (lastDurationMs > 0) state.setBufferedPosition(lastDurationMs)
+            .setState(PlaybackState.STATE_PLAYING, positionMs, 1f)
+            .setActions(PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or
+                        PlaybackState.ACTION_SEEK_TO or PlaybackState.ACTION_STOP)
+        if (durationMs > 0) {
+            state.setBufferedPosition(durationMs)
+        }
         mediaSession.setPlaybackState(state.build())
     }
 
-    fun updateMetadata(title: String?, artist: String?) {
+    fun updateMetadata(title: String?, artist: String?, durationMs: Long = 0) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             val builder = android.media.MediaMetadata.Builder()
             builder.putString(android.media.MediaMetadata.METADATA_KEY_TITLE, title ?: "母亲节快乐")
             builder.putString(android.media.MediaMetadata.METADATA_KEY_ARTIST, artist ?: "Happy Mother's Day")
+            if (durationMs > 0) {
+                builder.putLong(android.media.MediaMetadata.METADATA_KEY_DURATION, durationMs)
+            }
             mediaSession.setMetadata(builder.build())
         }
     }

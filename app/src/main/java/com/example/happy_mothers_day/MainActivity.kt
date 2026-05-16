@@ -70,13 +70,13 @@ class MainActivity : ComponentActivity() {
         AudioManager.mediaCallback = object : AudioManager.MediaCallback {
             override fun onPlay(durationMs: Int) {
                 mediaSessionManager.updatePlaybackState(true, 0L, durationMs.toLong())
-                mediaSessionManager.updateMetadata("母亲节快乐", "Happy Mother's Day")
+                mediaSessionManager.updateMetadata("母亲节快乐", "Happy Mother's Day", durationMs.toLong())
             }
             override fun onPause(positionMs: Int, durationMs: Int) {
                 mediaSessionManager.updatePlaybackState(false, positionMs.toLong(), durationMs.toLong())
             }
             override fun onPositionUpdate(positionMs: Int, durationMs: Int) {
-                mediaSessionManager.updatePosition(positionMs.toLong())
+                mediaSessionManager.updatePosition(positionMs.toLong(), durationMs.toLong())
             }
         }
 
@@ -158,7 +158,7 @@ fun MainApp(
                         dest.outputStream().use { output -> input.copyTo(output) }
                     }
                 }
-                tagStorage.saveMapping("2EA5892C", dest.absolutePath, "a_mild_tale_untold.flac")
+                tagStorage.saveMapping("2EA5892C", dest.absolutePath, "A Mild Tale Untold.flac")
             }
         }
     }
