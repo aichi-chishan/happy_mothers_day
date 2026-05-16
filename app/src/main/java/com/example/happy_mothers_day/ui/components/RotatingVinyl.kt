@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,11 +61,12 @@ fun RotatingVinyl(
 @Composable
 private fun rememberVinylRotation(isPlaying: Boolean, durationMs: Int): Float {
     val rotation = remember { Animatable(0f) }
+    val currentDuration by rememberUpdatedState(durationMs)
 
-    LaunchedEffect(isPlaying, durationMs) {
+    LaunchedEffect(isPlaying) {
         if (isPlaying) {
-            val dur = durationMs.coerceIn(5000, 20000)
             while (isActive) {
+                val dur = currentDuration.coerceIn(5000, 20000)
                 rotation.animateTo(360f, tween<Float>(dur, easing = LinearEasing))
                 rotation.snapTo(0f)
             }

@@ -84,11 +84,19 @@ fun PlayerScreen(
         onDispose { AudioManager.onStateChanged = null }
     }
 
+    // Start or resume playback — skip restart if same source already playing
     LaunchedEffect(audioUri) {
-        AudioManager.play(context, audioUri)
+        val sameSource = AudioManager.currentSourcePath == audioUri
+        val isDefaultBoth = audioUri.isNullOrEmpty() && AudioManager.currentSourcePath == null
+        if (autoPlay || AudioManager.duration <= 0 || (!sameSource && !isDefaultBoth)) {
+            AudioManager.play(context, audioUri)
+        }
         isPlaying = AudioManager.isPlaying
         hasError = AudioManager.hasError
         duration = AudioManager.duration
+        if (sameSource || isDefaultBoth) {
+            currentPosition = AudioManager.currentPositionMs
+        }
     }
 
     // Progress polling — skip updates while user is dragging
