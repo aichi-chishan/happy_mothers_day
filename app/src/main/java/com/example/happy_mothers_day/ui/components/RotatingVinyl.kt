@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,11 +67,12 @@ private fun rememberVinylRotation(
     isPlaying: Boolean, durationMs: Int, seekFraction: Float, isSeeking: Boolean
 ): Float {
     val rotation = remember { Animatable(0f) }
+    val currentSeekFraction = rememberUpdatedState(seekFraction)
 
     LaunchedEffect(isPlaying, durationMs, isSeeking) {
         if (isSeeking) {
-            // Track seek fraction directly — at 60fps updates, snapTo blends into smooth motion
-            snapshotFlow { seekFraction }
+            // Continuous tracking via snapshot-aware State
+            snapshotFlow { currentSeekFraction.value }
                 .collect { fraction ->
                     rotation.snapTo(fraction * 360f)
                 }
