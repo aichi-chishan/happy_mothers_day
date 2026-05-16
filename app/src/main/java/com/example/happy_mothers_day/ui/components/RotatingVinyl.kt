@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,23 +25,27 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.happy_mothers_day.R
-import kotlinx.coroutines.isActive
 import com.example.happy_mothers_day.ui.theme.LabelRed
 import com.example.happy_mothers_day.ui.theme.VinylBlack
 import com.example.happy_mothers_day.ui.theme.VinylGroove
+import kotlinx.coroutines.isActive
 
 /**
- * @param rotationDurationMs  duration for one full revolution in ms.
- *        20000 = 20s/rev (normal play), 5000 = 5s/rev (seeking).
+ * @param rotationDurationMs  one revolution duration (ms). 20000=20s/rev, 5000=5s/rev.
+ * @param seekFraction        current progress 0..1, drives rotation while seeking.
+ * @param isSeeking           true = rotation tracks seekFraction directly (direction
+ *                            follows drag: forward=clockwise, backward=counter-clockwise).
  */
 @Composable
 fun RotatingVinyl(
     isPlaying: Boolean,
     size: Dp = 280.dp,
     rotationDurationMs: Int = 20000,
+    seekFraction: Float = 0f,
+    isSeeking: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val rotation = rememberVinylRotation(isPlaying, rotationDurationMs)
+    val rotation = rememberVinylRotation(isPlaying, rotationDurationMs, seekFraction, isSeeking)
 
     Box(contentAlignment = Alignment.Center, modifier = modifier.size(size)) {
         Canvas(modifier = Modifier.fillMaxSize().rotate(rotation)) {
@@ -58,15 +61,20 @@ fun RotatingVinyl(
 }
 
 @Composable
-private fun rememberVinylRotation(isPlaying: Boolean, durationMs: Int): Float {
+private fun rememberVinylRotation(
+    isPlaying: Boolean, durationMs: Int, seekFraction: Float, isSeeking: Boolean
+): Float {
     val rotation = remember { Animatable(0f) }
 
-    LaunchedEffect(isPlaying, durationMs) {
-        if (isPlaying) {
+    LaunchedEffect(isPlaying, durationMs, isSeeking) {
+        if (isSeeking) {
+            // Track seek position directly — direction follows drag naturally
+            rotation.snapTo(seekFraction * 360f)
+        } else if (isPlaying) {
             val dur = durationMs.coerceIn(5000, 20000)
+            // Continuous clockwise rotation at fixed speed
             while (isActive) {
-                rotation.animateTo(360f, tween<Float>(dur, easing = LinearEasing))
-                rotation.snapTo(0f)
+                rotation.animateTo(rotation.value + 360f, tween<Float>(dur, easing = LinearEasing))
             }
         }
     }

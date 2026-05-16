@@ -188,7 +188,7 @@ fun HomeScreen(
         }
 
         if (isLandscape) {
-            LandscapeLayout(isNfcAvailable, isNfcEnabled, onNavigateToPlayer)
+            LandscapeLayout(isNfcAvailable, isNfcEnabled, onNavigateToPlayer, miniVisible)
         } else {
             PortraitLayout(isNfcAvailable, isNfcEnabled, onNavigateToPlayer, miniVisible)
         }
@@ -358,8 +358,14 @@ private fun PortraitLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNav
 }
 
 @Composable
-private fun LandscapeLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNavigateToPlayer: () -> Unit) {
-    Row(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+private fun LandscapeLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNavigateToPlayer: () -> Unit, miniVisible: Boolean) {
+    Row(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(bottom = if (miniVisible) 90.dp else 0.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Column(modifier = Modifier.weight(1f).padding(start = 24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             Text("母亲节快乐", style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, fontSize = 28.sp, color = DeepRose), textAlign = TextAlign.Center)
             Spacer(modifier = Modifier.height(8.dp))
