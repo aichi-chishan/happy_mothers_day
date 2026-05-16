@@ -1,10 +1,7 @@
 package com.example.happy_mothers_day.ui.components
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -13,8 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.State
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,17 +25,23 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.happy_mothers_day.R
+import kotlinx.coroutines.isActive
 import com.example.happy_mothers_day.ui.theme.LabelRed
 import com.example.happy_mothers_day.ui.theme.VinylBlack
 import com.example.happy_mothers_day.ui.theme.VinylGroove
 
+/**
+ * @param rotationDurationMs  duration for one full revolution in ms.
+ *        20000 = 20s/rev (normal play), 5000 = 5s/rev (seeking).
+ */
 @Composable
 fun RotatingVinyl(
     isPlaying: Boolean,
     size: Dp = 280.dp,
+    rotationDurationMs: Int = 20000,
     modifier: Modifier = Modifier
 ) {
-    val rotation by rememberVinylRotation(isPlaying)
+    val rotation = rememberVinylRotation(isPlaying, rotationDurationMs)
 
     Box(contentAlignment = Alignment.Center, modifier = modifier.size(size)) {
         Canvas(modifier = Modifier.fillMaxSize().rotate(rotation)) {
@@ -55,17 +57,20 @@ fun RotatingVinyl(
 }
 
 @Composable
-private fun rememberVinylRotation(isPlaying: Boolean): State<Float> {
-    val infiniteTransition = rememberInfiniteTransition(label = "vinyl_rotation")
-    // Cache specs so they don't recreate every recomposition
-    val playSpec = remember { infiniteRepeatable(animation = tween<Float>(5000, easing = LinearEasing), repeatMode = RepeatMode.Restart) }
-    val pauseSpec = remember { infiniteRepeatable(animation = tween<Float>(1, easing = LinearEasing), repeatMode = RepeatMode.Restart) }
-    return infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = if (isPlaying) playSpec else pauseSpec,
-        label = "rotation"
-    )
+private fun rememberVinylRotation(isPlaying: Boolean, durationMs: Int): Float {
+    val rotation = remember { Animatable(0f) }
+
+    LaunchedEffect(isPlaying, durationMs) {
+        if (isPlaying) {
+            val dur = durationMs.coerceIn(5000, 20000)
+            while (isActive) {
+                rotation.animateTo(360f, tween<Float>(dur, easing = LinearEasing))
+                rotation.snapTo(0f)
+            }
+        }
+    }
+
+    return rotation.value
 }
 
 private fun DrawScope.drawVinylDisc(totalSize: Float) {

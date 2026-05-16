@@ -157,7 +157,7 @@ private fun PortraitPlayer(
         Spacer(modifier = Modifier.height(8.dp))
         Text("For My Dear Mother", style = MaterialTheme.typography.bodyMedium.copy(color = RosePinkLight.copy(alpha = 0.6f), fontSize = 14.sp), textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(32.dp))
-        RotatingVinyl(isPlaying = isPlaying, size = 220.dp)
+        RotatingVinyl(isPlaying = isPlaying, rotationDurationMs = if (isSeeking) 5000 else 20000, size = 220.dp)
         Spacer(modifier = Modifier.height(32.dp))
         ProgressBar(duration, currentPosition, seekPosition, isSeeking, onSeek, onSeekEnd)
         Spacer(modifier = Modifier.height(16.dp))
@@ -182,7 +182,7 @@ private fun LandscapePlayer(
 ) {
     Row(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            RotatingVinyl(isPlaying = isPlaying, size = 180.dp)
+            RotatingVinyl(isPlaying = isPlaying, rotationDurationMs = if (isSeeking) 5000 else 20000, size = 180.dp)
         }
         Column(modifier = Modifier.weight(1f).padding(start = 8.dp, end = 8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             Text("献给妈妈", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold, color = RosePinkLight), textAlign = TextAlign.Center)
