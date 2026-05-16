@@ -19,6 +19,9 @@ class MediaSessionManager(private val context: Context) {
     private val notificationId = 1001
     private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
+    private var lastPositionMs: Long = 0
+    private var lastDurationMs: Long = PlaybackState.PLAYBACK_POSITION_UNKNOWN
+
     private val callback = object : MediaSession.Callback() {
         override fun onPlay() { audioCallback?.onPlay() }
         override fun onPause() { audioCallback?.onPause() }
@@ -32,8 +35,6 @@ class MediaSessionManager(private val context: Context) {
     }
 
     var audioCallback: AudioCallback? = null
-    private var currentTitle: String? = null
-    private var currentArtist: String? = null
 
     init {
         mediaSession = MediaSession(context, "HappyMothersDaySession").apply {
@@ -45,24 +46,53 @@ class MediaSessionManager(private val context: Context) {
         createNotificationChannel()
     }
 
-    fun updatePlaybackState(isPlaying: Boolean, positionMs: Long = 0, durationMs: Long = PlaybackState.PLAYBACK_POSITION_UNKNOWN) {
-        val state = if (isPlaying) PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED
+    /** Full state update: called on play/pause/seek with complete info */
+    fun updatePlaybackState(isPlaying: Boolean, positionMs: Long, durationMs: Long) {
+        lastPositionMs = positionMs
+        lastDurationMs = durationMs
+
+        val state = if (isPlaying) PlaybackState.STATE_PLAYING
+        else if (durationMs > 0) PlaybackState.STATE_PAUSED
+        else PlaybackState.STATE_NONE
+
         val builder = PlaybackState.Builder()
             .setState(state, positionMs, 1f)
             .setActions(
                 PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or
                         PlaybackState.ACTION_SEEK_TO or PlaybackState.ACTION_STOP
             )
+        if (durationMs > 0) {
+            builder.setBufferedPosition(durationMs)
+        }
         mediaSession.setPlaybackState(builder.build())
 
-        if (isPlaying || state == PlaybackState.STATE_PAUSED) {
+        if (state == PlaybackState.STATE_PLAYING || state == PlaybackState.STATE_PAUSED) {
             showNotification(isPlaying)
+        } else {
+            hideNotification()
         }
     }
 
+    /** Lightweight position-only update — called periodically during playback */
+    fun updatePosition(positionMs: Long) {
+        lastPositionMs = positionMs
+        val state = PlaybackState.Builder()
+            .setState(
+                if (lastDurationMs > 0) PlaybackState.STATE_PLAYING else PlaybackState.STATE_NONE,
+                positionMs, 1f
+            )
+            .setActions(PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or PlaybackState.ACTION_SEEK_TO or PlaybackState.ACTION_STOP)
+        if (lastDurationMs > 0) state.setBufferedPosition(lastDurationMs)
+        mediaSession.setPlaybackState(state.build())
+    }
+
     fun updateMetadata(title: String?, artist: String?) {
-        currentTitle = title
-        currentArtist = artist
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            val builder = android.media.MediaMetadata.Builder()
+            builder.putString(android.media.MediaMetadata.METADATA_KEY_TITLE, title ?: "母亲节快乐")
+            builder.putString(android.media.MediaMetadata.METADATA_KEY_ARTIST, artist ?: "Happy Mother's Day")
+            mediaSession.setMetadata(builder.build())
+        }
     }
 
     fun hideNotification() {
@@ -89,27 +119,16 @@ class MediaSessionManager(private val context: Context) {
             null
         ).build()
 
-        val notification = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            Notification.Builder(context, channelId)
-                .setContentTitle(currentTitle ?: "母亲节快乐")
-                .setContentText(currentArtist ?: "Happy Mother's Day")
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setContentIntent(clickIntent)
-                .setStyle(Notification.MediaStyle().setMediaSession(mediaSession.sessionToken))
-                .addAction(playAction)
-                .setOngoing(isPlaying)
-                .setVisibility(Notification.VISIBILITY_PUBLIC)
-                .build()
-        } else {
-            @Suppress("DEPRECATION")
-            Notification.Builder(context)
-                .setContentTitle(currentTitle ?: "母亲节快乐")
-                .setContentText(currentArtist ?: "Happy Mother's Day")
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setContentIntent(clickIntent)
-                .setOngoing(isPlaying)
-                .build()
-        }
+        val notification = Notification.Builder(context, channelId)
+            .setContentTitle("母亲节快乐")
+            .setContentText("Happy Mother's Day")
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentIntent(clickIntent)
+            .setStyle(Notification.MediaStyle().setMediaSession(mediaSession.sessionToken))
+            .addAction(playAction)
+            .setOngoing(isPlaying)
+            .setVisibility(Notification.VISIBILITY_PUBLIC)
+            .build()
 
         notificationManager.notify(notificationId, notification)
     }

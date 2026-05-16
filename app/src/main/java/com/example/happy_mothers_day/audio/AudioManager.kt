@@ -32,9 +32,9 @@ object AudioManager {
     var mediaCallback: MediaCallback? = null
 
     interface MediaCallback {
-        fun onPlay()
-        fun onPause()
-        fun onSeekTo(positionMs: Int)
+        fun onPlay(durationMs: Int)
+        fun onPause(positionMs: Int, durationMs: Int)
+        fun onPositionUpdate(positionMs: Int, durationMs: Int)
     }
 
     /** Thread-safe notification */
@@ -81,7 +81,7 @@ object AudioManager {
             try {
                 mp.start()
                 isPlaying = true
-                mediaCallback?.onPlay()
+                mediaCallback?.onPlay(mp.duration)
             } catch (e: Exception) {
                 Log.e("AudioManager", "start failed", e)
                 hasError = true
@@ -101,11 +101,12 @@ object AudioManager {
             if (isPlaying) {
                 mp.pause()
                 isPlaying = false
-                mediaCallback?.onPause()
+                val pos = try { mp.currentPosition } catch (_: Exception) { 0 }
+                mediaCallback?.onPause(pos, mp.duration)
             } else {
                 mp.start()
                 isPlaying = true
-                mediaCallback?.onPlay()
+                mediaCallback?.onPlay(mp.duration)
             }
         } catch (_: Exception) {
             hasError = true
@@ -114,7 +115,13 @@ object AudioManager {
     }
 
     fun pollPosition() {
-        currentPositionMs = try { mediaPlayer?.currentPosition ?: 0 } catch (_: Exception) { 0 }
+        val newPos = try { mediaPlayer?.currentPosition ?: 0 } catch (_: Exception) { 0 }
+        if (kotlin.math.abs(newPos - currentPositionMs) >= 500) {
+            currentPositionMs = newPos
+            if (duration > 0) mediaCallback?.onPositionUpdate(currentPositionMs, duration)
+        } else {
+            currentPositionMs = newPos
+        }
     }
 
     fun seekToFraction(fraction: Float) {

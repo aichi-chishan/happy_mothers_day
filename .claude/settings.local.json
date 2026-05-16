@@ -14,7 +14,8 @@
       "Bash(JAVA_HOME=\"E:/APP/java\" ./gradlew compileDebugKotlin)",
       "Bash(git commit -m ' *)",
       "Bash(JAVA_HOME=\"E:/APP/java\" ./gradlew assembleDebug)",
-      "Bash(rm \"GenshinlmpactPhoto 2023_11_11 12_02_26.png\")"
+      "Bash(rm \"GenshinlmpactPhoto 2023_11_11 12_02_26.png\")",
+      "Bash(git revert *)"
     ]
   }
 }

@@ -65,9 +65,16 @@ class MainActivity : ComponentActivity() {
             override fun onSeekTo(positionMs: Int) { AudioManager.seekToFraction(positionMs.toFloat() / AudioManager.duration) }
         }
         AudioManager.mediaCallback = object : AudioManager.MediaCallback {
-            override fun onPlay() { mediaSessionManager.updatePlaybackState(true) }
-            override fun onPause() { mediaSessionManager.updatePlaybackState(false) }
-            override fun onSeekTo(positionMs: Int) {}
+            override fun onPlay(durationMs: Int) {
+                mediaSessionManager.updatePlaybackState(true, 0L, durationMs.toLong())
+                mediaSessionManager.updateMetadata("母亲节快乐", "Happy Mother's Day")
+            }
+            override fun onPause(positionMs: Int, durationMs: Int) {
+                mediaSessionManager.updatePlaybackState(false, positionMs.toLong(), durationMs.toLong())
+            }
+            override fun onPositionUpdate(positionMs: Int, durationMs: Int) {
+                mediaSessionManager.updatePosition(positionMs.toLong())
+            }
         }
 
         setContent {
