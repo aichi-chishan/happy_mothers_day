@@ -333,9 +333,10 @@ private fun PortraitLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNav
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp)
-            .padding(bottom = if (miniVisible) 110.dp else 0.dp)
+            .padding(bottom = if (miniVisible) 100.dp else 0.dp)
             .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
         Spacer(modifier = Modifier.height(60.dp))
         Text("母亲节快乐", style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, fontSize = 36.sp, color = DeepRose), textAlign = TextAlign.Center)
@@ -343,7 +344,7 @@ private fun PortraitLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNav
         Text("妈妈，我爱您", style = MaterialTheme.typography.titleLarge.copy(color = RosePink, fontWeight = FontWeight.Medium), textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(8.dp))
         Text("Happy Mother's Day", style = MaterialTheme.typography.titleMedium.copy(color = RosePink.copy(alpha = 0.7f)), textAlign = TextAlign.Center)
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(32.dp))
         if (!isNfcAvailable || !isNfcEnabled) {
             Button(onClick = onNavigateToPlayer, modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(24.dp), colors = ButtonDefaults.buttonColors(containerColor = RosePink)) {
                 Icon(Icons.Filled.MusicNote, contentDescription = null)
@@ -353,7 +354,6 @@ private fun PortraitLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNav
             Spacer(modifier = Modifier.height(16.dp))
         }
         NfcCard(isNfcAvailable, isNfcEnabled)
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
@@ -362,13 +362,15 @@ private fun LandscapeLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNa
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp, vertical = 4.dp)
-            .padding(bottom = if (miniVisible) 55.dp else 0.dp),
+            .padding(horizontal = 16.dp)
+            .padding(bottom = if (miniVisible) 65.dp else 0.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Left: text + button
             Column(
@@ -376,9 +378,9 @@ private fun LandscapeLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNa
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text("母亲节快乐", style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, fontSize = 24.sp, color = DeepRose), textAlign = TextAlign.Center)
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Text("妈妈，我爱您", style = MaterialTheme.typography.titleLarge.copy(color = RosePink, fontWeight = FontWeight.Medium, fontSize = 16.sp), textAlign = TextAlign.Center)
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text("Happy Mother's Day", style = MaterialTheme.typography.titleMedium.copy(color = RosePink.copy(alpha = 0.7f), fontSize = 12.sp), textAlign = TextAlign.Center)
                 if (!isNfcAvailable || !isNfcEnabled) {
                     Spacer(modifier = Modifier.height(12.dp))
@@ -389,7 +391,6 @@ private fun LandscapeLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNa
                     }
                 }
             }
-            Spacer(modifier = Modifier.width(12.dp))
             // Right: NFC card
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 NfcCard(isNfcAvailable, isNfcEnabled)
