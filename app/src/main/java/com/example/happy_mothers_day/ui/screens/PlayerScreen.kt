@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.example.happy_mothers_day.audio.AudioManager
+import com.example.happy_mothers_day.ui.components.CustomSlider
 import com.example.happy_mothers_day.ui.components.RotatingVinyl
 import com.example.happy_mothers_day.ui.theme.RosePink
 import com.example.happy_mothers_day.ui.theme.RosePinkLight
@@ -218,13 +219,18 @@ private fun ProgressBar(
     onSeek: (Float) -> Unit, onSeekEnd: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        Slider(
+        CustomSlider(
             value = seekPosition.coerceIn(0f, 1f),
             onValueChange = onSeek,
             onValueChangeFinished = onSeekEnd,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).height(32.dp),
-            colors = SliderDefaults.colors(thumbColor = RosePink, activeTrackColor = RosePink, inactiveTrackColor = RosePinkLight.copy(alpha = 0.3f))
+            modifier = Modifier.fillMaxWidth(),
+            thumbRadius = 10.dp,
+            trackHeight = 4.dp,
+            thumbColor = RosePink,
+            activeTrackColor = RosePink,
+            inactiveTrackColor = RosePinkLight.copy(alpha = 0.3f)
         )
+        Spacer(modifier = Modifier.height(4.dp))
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(formatTime(currentPosition), style = MaterialTheme.typography.bodySmall.copy(color = RosePinkLight.copy(alpha = 0.6f), fontSize = 11.sp))
             Text(formatTime(duration), style = MaterialTheme.typography.bodySmall.copy(color = RosePinkLight.copy(alpha = 0.6f), fontSize = 11.sp))

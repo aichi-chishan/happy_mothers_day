@@ -73,6 +73,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.example.happy_mothers_day.audio.AudioManager
+import com.example.happy_mothers_day.ui.components.CustomSlider
 import com.example.happy_mothers_day.ui.theme.DeepRose
 import com.example.happy_mothers_day.ui.theme.RosePink
 import com.example.happy_mothers_day.ui.theme.RosePinkLight
@@ -271,8 +272,7 @@ private fun MiniPlayer(
 
             Spacer(modifier = Modifier.height(if (compact) 4.dp else 8.dp))
 
-            // Progress bar
-            Slider(
+            CustomSlider(
                 value = displayFraction,
                 onValueChange = {
                     seekDrag = true
@@ -282,12 +282,12 @@ private fun MiniPlayer(
                     seekDrag = false
                     onSeek(dragFraction)
                 },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).height(if (compact) 20.dp else 28.dp),
-                colors = SliderDefaults.colors(
-                    thumbColor = RosePink,
-                    activeTrackColor = RosePink,
-                    inactiveTrackColor = RosePinkLight.copy(alpha = 0.3f)
-                )
+                modifier = Modifier.fillMaxWidth(),
+                thumbRadius = if (compact) 8.dp else 10.dp,
+                trackHeight = 4.dp,
+                thumbColor = RosePink,
+                activeTrackColor = RosePink,
+                inactiveTrackColor = RosePinkLight.copy(alpha = 0.3f)
             )
 
             // Time + Play button row
