@@ -222,7 +222,7 @@ private fun ProgressBar(
             value = seekPosition.coerceIn(0f, 1f),
             onValueChange = onSeek,
             onValueChangeFinished = onSeekEnd,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).height(32.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).height(32.dp),
             colors = SliderDefaults.colors(thumbColor = RosePink, activeTrackColor = RosePink, inactiveTrackColor = RosePinkLight.copy(alpha = 0.3f))
         )
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {

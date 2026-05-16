@@ -282,7 +282,7 @@ private fun MiniPlayer(
                     seekDrag = false
                     onSeek(dragFraction)
                 },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = if (compact) 4.dp else 0.dp).height(if (compact) 20.dp else 28.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).height(if (compact) 20.dp else 28.dp),
                 colors = SliderDefaults.colors(
                     thumbColor = RosePink,
                     activeTrackColor = RosePink,
