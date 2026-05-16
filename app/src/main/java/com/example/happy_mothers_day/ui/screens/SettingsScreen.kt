@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.happy_mothers_day.nfc.NfcHelper
+import androidx.compose.material.icons.filled.Palette
 import com.example.happy_mothers_day.storage.TagAudioStorage
 import com.example.happy_mothers_day.ui.theme.DeepRose
 import com.example.happy_mothers_day.ui.theme.RosePink
@@ -49,6 +50,8 @@ import java.io.File
 @Composable
 fun SettingsScreen(
     nfcHelper: NfcHelper,
+    advancedUI: Boolean,
+    onToggleAdvancedUI: (Boolean) -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateToLearning: () -> Unit,
     onNavigateToPlayer: (uri: String) -> Unit,
@@ -99,9 +102,9 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             if (isLandscape) {
-                LandscapeContent(mappings, onNavigateToLearning, onNavigateToPlayer, { storage.removeMapping(it); refreshMappings(); onMappingDeleted() }, { editingEntry = it })
+                LandscapeContent(mappings, onNavigateToLearning, onNavigateToPlayer, { storage.removeMapping(it); refreshMappings(); onMappingDeleted() }, { editingEntry = it }, advancedUI, onToggleAdvancedUI)
             } else {
-                PortraitContent(mappings, onNavigateToLearning, onNavigateToPlayer, { storage.removeMapping(it); refreshMappings(); onMappingDeleted() }, { editingEntry = it })
+                PortraitContent(mappings, onNavigateToLearning, onNavigateToPlayer, { storage.removeMapping(it); refreshMappings(); onMappingDeleted() }, { editingEntry = it }, advancedUI, onToggleAdvancedUI)
             }
         }
     }
@@ -156,8 +159,27 @@ fun SettingsScreen(
 private fun PortraitContent(
     mappings: List<TagAudioStorage.TagEntry>, onNavigateToLearning: () -> Unit,
     onNavigateToPlayer: (String) -> Unit, onDelete: (String) -> Unit,
-    onEdit: (TagAudioStorage.TagEntry) -> Unit
+    onEdit: (TagAudioStorage.TagEntry) -> Unit,
+    advancedUI: Boolean, onToggleAdvancedUI: (Boolean) -> Unit
 ) {
+    // UI Mode toggle
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.6f))
+    ) {
+        Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.Palette, contentDescription = null, tint = DeepRose, modifier = Modifier.size(24.dp))
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text("高级视觉效果", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium, color = DeepRose))
+                Text("液态玻璃风格", style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray))
+            }
+            Switch(checked = advancedUI, onCheckedChange = onToggleAdvancedUI, colors = SwitchDefaults.colors(checkedThumbColor = RosePink, checkedTrackColor = RosePinkLight))
+        }
+    }
+    Spacer(modifier = Modifier.height(12.dp))
+
     Button(onClick = onNavigateToLearning, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(16.dp), colors = ButtonDefaults.buttonColors(containerColor = RosePink)) {
         Icon(Icons.Filled.Add, contentDescription = null)
         Spacer(modifier = Modifier.width(8.dp))
@@ -179,9 +201,28 @@ private fun PortraitContent(
 private fun LandscapeContent(
     mappings: List<TagAudioStorage.TagEntry>, onNavigateToLearning: () -> Unit,
     onNavigateToPlayer: (String) -> Unit, onDelete: (String) -> Unit,
-    onEdit: (TagAudioStorage.TagEntry) -> Unit
+    onEdit: (TagAudioStorage.TagEntry) -> Unit,
+    advancedUI: Boolean, onToggleAdvancedUI: (Boolean) -> Unit
 ) {
-    Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column {
+        // UI toggle row
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.6f))
+        ) {
+            Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Palette, contentDescription = null, tint = DeepRose, modifier = Modifier.size(24.dp))
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("高级视觉效果", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium, color = DeepRose))
+                    Text("液态玻璃风格", style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray))
+                }
+                Switch(checked = advancedUI, onCheckedChange = onToggleAdvancedUI, colors = SwitchDefaults.colors(checkedThumbColor = RosePink, checkedTrackColor = RosePinkLight))
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         Column(modifier = Modifier.weight(1f)) {
             Text("已绑定的标签", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold, color = DeepRose))
             Spacer(modifier = Modifier.height(8.dp))
@@ -202,6 +243,7 @@ private fun LandscapeContent(
             Spacer(modifier = Modifier.height(12.dp))
             Text("选择一个音频文件\n然后扫描NFC标签\n即可完成绑定", style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray, textAlign = TextAlign.Center))
         }
+    }
     }
 }
 
