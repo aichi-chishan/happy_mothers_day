@@ -150,7 +150,7 @@ fun PlayerScreen(
         AudioManager.seekToFraction(seekPosition)
     }
 
-    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val statusBarHeight = com.example.happy_mothers_day.util.statusBarHeight()
 
     Box(
         modifier = modifier.fillMaxSize().background(

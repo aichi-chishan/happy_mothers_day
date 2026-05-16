@@ -41,7 +41,7 @@ fun NfcTagReaderScreen(
     val context = LocalContext.current
     val storage = remember { TagAudioStorage(context) }
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val statusBarHeight = com.example.happy_mothers_day.util.statusBarHeight()
 
     var scannedTagId by remember { mutableStateOf<String?>(null) }
     var isDefault by remember { mutableStateOf(false) }

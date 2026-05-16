@@ -59,7 +59,7 @@ fun SettingsScreen(
     var mappings by remember { mutableStateOf(storage.getAllMappings()) }
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val scope = rememberCoroutineScope()
-    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val statusBarHeight = com.example.happy_mothers_day.util.statusBarHeight()
 
     // --- Edit state ---
     var editingEntry by remember { mutableStateOf<TagAudioStorage.TagEntry?>(null) }

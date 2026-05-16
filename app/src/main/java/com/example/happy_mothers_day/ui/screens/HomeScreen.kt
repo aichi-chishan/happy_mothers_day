@@ -94,7 +94,7 @@ fun HomeScreen(
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     var menuExpanded by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
-    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val statusBarHeight = com.example.happy_mothers_day.util.statusBarHeight()
 
     // --- Mini player state ---
     var miniVisible by remember { mutableStateOf(false) }
