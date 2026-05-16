@@ -55,11 +55,17 @@ fun HappyMothersDayTheme(
         SideEffect {
             try {
                 val window = (view.context as? Activity)?.window ?: return@SideEffect
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                if (Build.VERSION.SDK_INT >= 35) {
+                    // Edge-to-edge: transparent status bar, dark icons on light bg
+                    @Suppress("DEPRECATION")
+                    window.statusBarColor = android.graphics.Color.TRANSPARENT
+                    window.isStatusBarContrastEnforced = false
+                    WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
+                } else {
                     @Suppress("DEPRECATION")
                     window.statusBarColor = colorScheme.primary.toArgb()
+                    WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
                 }
-                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
             } catch (_: Exception) { }
         }
     }
