@@ -143,6 +143,7 @@ object AudioManager {
         val ms = (fraction * duration).toInt().coerceIn(0, duration)
         currentPositionMs = ms
         try { mediaPlayer?.seekTo(ms) } catch (_: Exception) { }
+        mediaCallback?.onPositionUpdate(currentPositionMs, duration)
         notifyChanged()
     }
 

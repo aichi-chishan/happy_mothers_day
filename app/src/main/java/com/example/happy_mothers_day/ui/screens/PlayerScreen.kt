@@ -88,6 +88,11 @@ fun PlayerScreen(
             isPlaying = AudioManager.isPlaying
             hasError = AudioManager.hasError
             duration = AudioManager.duration
+            // Sync position from system seek
+            if (!isSeeking) {
+                currentPosition = AudioManager.currentPositionMs
+                if (duration > 0) seekPosition = currentPosition.toFloat() / duration
+            }
         }
         onDispose { AudioManager.onStateChanged = null }
     }
@@ -199,16 +204,17 @@ private fun PortraitPlayer(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
         }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-            // Repeat toggle
-            IconButton(onClick = onToggleRepeat, modifier = Modifier.size(44.dp)) {
+        Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {
+            // Repeat toggle — aligned to progress bar left edge
+            IconButton(onClick = onToggleRepeat, modifier = Modifier.align(Alignment.CenterStart).size(40.dp)) {
                 Image(
                     painter = painterResource(id = if (repeatMode) R.drawable.ic_repeat_on else R.drawable.ic_repeat_off),
                     contentDescription = if (repeatMode) "单曲循环:开" else "单曲循环:关",
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(24.dp)
                 )
             }
-            FloatingActionButton(onClick = onPlayPause, modifier = Modifier.size(64.dp), containerColor = RosePink, contentColor = Color.White, shape = CircleShape) {
+            // Play/pause button — centered
+            FloatingActionButton(onClick = onPlayPause, modifier = Modifier.align(Alignment.Center).size(64.dp), containerColor = RosePink, contentColor = Color.White, shape = CircleShape) {
                 Icon(imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, contentDescription = if (isPlaying) "暂停" else "播放", modifier = Modifier.size(32.dp))
             }
         }
@@ -236,15 +242,15 @@ private fun LandscapePlayer(
             AnimatedVisibility(visible = hasError, enter = fadeIn(), exit = fadeOut()) {
                 Text(text = if (audioUri.isNullOrEmpty()) "音频文件缺失" else "音频文件无法播放", style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFFB0B0B0), textAlign = TextAlign.Center), modifier = Modifier.padding(bottom = 4.dp))
             }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                IconButton(onClick = onToggleRepeat, modifier = Modifier.size(40.dp)) {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                IconButton(onClick = onToggleRepeat, modifier = Modifier.align(Alignment.CenterStart).size(36.dp)) {
                     Image(
                         painter = painterResource(id = if (repeatMode) R.drawable.ic_repeat_on else R.drawable.ic_repeat_off),
                         contentDescription = if (repeatMode) "单曲循环:开" else "单曲循环:关",
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
-                FloatingActionButton(onClick = onPlayPause, modifier = Modifier.size(56.dp), containerColor = RosePink, contentColor = Color.White, shape = CircleShape) {
+                FloatingActionButton(onClick = onPlayPause, modifier = Modifier.align(Alignment.Center).size(56.dp), containerColor = RosePink, contentColor = Color.White, shape = CircleShape) {
                     Icon(imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, contentDescription = if (isPlaying) "暂停" else "播放", modifier = Modifier.size(28.dp))
                 }
             }
