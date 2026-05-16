@@ -194,7 +194,7 @@ private fun LandscapePlayer(
 ) {
     Row(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            RotatingVinyl(isPlaying = isPlaying, rotationDurationMs = if (isSeeking) 5000 else 20000, seekFraction = seekPosition, isSeeking = isSeeking, size = 180.dp)
+            RotatingVinyl(isPlaying = isPlaying, rotationDurationMs = if (isSeeking) 5000 else 20000, seekFraction = seekPosition, isSeeking = isSeeking, size = 240.dp)
         }
         Column(modifier = Modifier.weight(1f).padding(start = 8.dp, end = 8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             Text("献给妈妈", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold, color = RosePinkLight), textAlign = TextAlign.Center)
