@@ -196,7 +196,7 @@ fun HomeScreen(
         // Mini player — floating above bottom (compact in landscape)
         if (miniVisible) {
             Box(modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter)
-                .padding(horizontal = if (isLandscape) 16.dp else 24.dp, vertical = if (isLandscape) 4.dp else 12.dp).zIndex(99f)) {
+                .padding(horizontal = if (isLandscape) 16.dp else 24.dp, vertical = 12.dp).zIndex(99f)) {
                 MiniPlayer(
                 fileName = miniFileName,
                 isPlaying = miniPlaying,
@@ -350,10 +350,10 @@ private fun PortraitLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNav
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("直接播放音频", fontWeight = FontWeight.Medium)
             }
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         }
         NfcCard(isNfcAvailable, isNfcEnabled)
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
@@ -363,7 +363,7 @@ private fun LandscapeLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNa
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 20.dp, vertical = 4.dp)
-            .padding(bottom = if (miniVisible) 40.dp else 0.dp),
+            .padding(bottom = if (miniVisible) 55.dp else 0.dp),
         verticalArrangement = Arrangement.Center
     ) {
         Row(
