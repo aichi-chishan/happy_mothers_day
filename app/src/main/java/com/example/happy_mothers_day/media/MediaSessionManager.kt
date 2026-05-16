@@ -48,46 +48,48 @@ class MediaSessionManager(private val context: Context) {
 
     /** Full state update: called on play/pause/seek with complete info */
     fun updatePlaybackState(isPlaying: Boolean, positionMs: Long, durationMs: Long) {
-        lastPositionMs = positionMs
-        lastDurationMs = durationMs
+        if (durationMs > 0) {
+            lastPositionMs = positionMs
+            lastDurationMs = durationMs
+        } else if (lastDurationMs > 0) {
+            // Keep last known position if new duration is 0 (prevent state loss)
+        } else {
+            return // No state yet, nothing to report
+        }
 
-        val state = if (isPlaying) PlaybackState.STATE_PLAYING
-        else if (durationMs > 0) PlaybackState.STATE_PAUSED
-        else PlaybackState.STATE_NONE
+        val state = if (isPlaying) PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED
 
         val builder = PlaybackState.Builder()
-            .setState(state, positionMs, 1f)
+            .setState(state, lastPositionMs, 1f)
             .setActions(
                 PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or
                         PlaybackState.ACTION_SEEK_TO or PlaybackState.ACTION_STOP
             )
-        if (durationMs > 0) {
-            builder.setBufferedPosition(durationMs)
-        }
+        builder.setBufferedPosition(lastDurationMs)
         mediaSession.setPlaybackState(builder.build())
 
-        if (state == PlaybackState.STATE_PLAYING || state == PlaybackState.STATE_PAUSED) {
-            showNotification(isPlaying)
-        } else {
-            hideNotification()
-        }
+        showNotification(isPlaying)
 
         // Update metadata with duration so system shows progress bar
-        if (durationMs > 0) {
-            updateMetadata(null, null, durationMs)
+        if (lastDurationMs > 0) {
+            updateMetadata(null, null, lastDurationMs)
         }
     }
 
     /** Lightweight position-only update — called periodically during playback */
     fun updatePosition(positionMs: Long, durationMs: Long) {
-        lastPositionMs = positionMs
-        lastDurationMs = durationMs
+        if (durationMs > 0) {
+            lastPositionMs = positionMs
+            lastDurationMs = durationMs
+        } else {
+            lastPositionMs = positionMs // still track position
+        }
         val state = PlaybackState.Builder()
-            .setState(PlaybackState.STATE_PLAYING, positionMs, 1f)
+            .setState(PlaybackState.STATE_PLAYING, lastPositionMs, 1f)
             .setActions(PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or
                         PlaybackState.ACTION_SEEK_TO or PlaybackState.ACTION_STOP)
-        if (durationMs > 0) {
-            state.setBufferedPosition(durationMs)
+        if (lastDurationMs > 0) {
+            state.setBufferedPosition(lastDurationMs)
         }
         mediaSession.setPlaybackState(state.build())
     }

@@ -64,6 +64,7 @@ fun SettingsScreen(
     // --- Edit state ---
     var editingEntry by remember { mutableStateOf<TagAudioStorage.TagEntry?>(null) }
     var scanningNfc by remember { mutableStateOf(false) }
+    var confirmDeleteTag by remember { mutableStateOf<String?>(null) }
 
     // File picker for audio replacement
     val audioReplacer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -99,9 +100,9 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             if (isLandscape) {
-                LandscapeContent(mappings, onNavigateToLearning, onNavigateToPlayer, { storage.removeMapping(it); refreshMappings(); onMappingDeleted() }, { editingEntry = it })
+                LandscapeContent(mappings, onNavigateToLearning, onNavigateToPlayer, { confirmDeleteTag = it }, { editingEntry = it })
             } else {
-                PortraitContent(mappings, onNavigateToLearning, onNavigateToPlayer, { storage.removeMapping(it); refreshMappings(); onMappingDeleted() }, { editingEntry = it })
+                PortraitContent(mappings, onNavigateToLearning, onNavigateToPlayer, { confirmDeleteTag = it }, { editingEntry = it })
             }
         }
     }
@@ -148,6 +149,31 @@ fun SettingsScreen(
                 }
             },
             dismissButton = null
+        )
+    }
+
+    // --- Delete Confirmation Dialog ---
+    confirmDeleteTag?.let { tagId ->
+        val entry = mappings.find { it.tagId == tagId }
+        AlertDialog(
+            onDismissRequest = { confirmDeleteTag = null },
+            title = { Text("确认删除", fontWeight = FontWeight.Bold) },
+            text = {
+                Text("确定要删除该绑定吗？\n\n音频: ${entry?.fileName ?: "未知"}\n标签: ${tagId.take(12)}…", style = MaterialTheme.typography.bodyMedium)
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    storage.removeMapping(tagId)
+                    refreshMappings()
+                    onMappingDeleted()
+                    confirmDeleteTag = null
+                }) {
+                    Text("删除", color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDeleteTag = null }) { Text("取消") }
+            }
         )
     }
 }
