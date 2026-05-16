@@ -31,7 +31,6 @@ import com.example.happy_mothers_day.ui.screens.NfcLearningScreen
 import com.example.happy_mothers_day.ui.screens.NfcTagReaderScreen
 import com.example.happy_mothers_day.ui.screens.PlayerScreen
 import com.example.happy_mothers_day.ui.screens.SettingsScreen
-import com.example.happy_mothers_day.ui.theme.GlassUI
 import com.example.happy_mothers_day.ui.theme.HappyMothersDayTheme
 import kotlinx.coroutines.delay
 
@@ -136,7 +135,6 @@ fun MainApp(
 
     val isNfcAvailable = remember { nfcHelper.isNfcSupported() }
     var isNfcEnabled by remember { mutableStateOf(nfcHelper.isNfcAvailable()) }
-    var advancedUI by remember { mutableStateOf(GlassUI.isAdvancedMode(context)) }
 
     // Refresh NFC status on every resume + ensure saved default tag is recognized
     DisposableEffect(lifecycleOwner) {
@@ -204,7 +202,6 @@ fun MainApp(
             HomeScreen(
                 isNfcAvailable = isNfcAvailable,
                 isNfcEnabled = isNfcEnabled,
-                advancedUI = advancedUI,
                 onNavigateToPlayer = {
                     navController.navigate("player?autoPlay=false&uri=") {
                         popUpTo("home") { inclusive = false }
@@ -231,11 +228,6 @@ fun MainApp(
         composable("settings") {
             SettingsScreen(
                 nfcHelper = nfcHelper,
-                advancedUI = advancedUI,
-                onToggleAdvancedUI = { enabled ->
-                    advancedUI = enabled
-                    GlassUI.setAdvancedMode(context, enabled)
-                },
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToLearning = {
                     navController.navigate("learning") {
@@ -272,8 +264,7 @@ fun MainApp(
             PlayerScreen(
                 onNavigateBack = { navController.popBackStack() },
                 autoPlay = autoPlay,
-                audioUri = decodedUri,
-                advancedUI = advancedUI
+                audioUri = decodedUri
             )
         }
     }

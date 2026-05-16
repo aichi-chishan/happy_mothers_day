@@ -54,10 +54,6 @@ import androidx.compose.ui.zIndex
 import com.example.happy_mothers_day.audio.AudioManager
 import com.example.happy_mothers_day.ui.components.CustomSlider
 import com.example.happy_mothers_day.ui.components.RotatingVinyl
-import com.example.happy_mothers_day.ui.theme.GlassShimmer
-import com.example.happy_mothers_day.ui.theme.glassBackground
-import com.example.happy_mothers_day.ui.theme.glassDarkBackground
-import com.example.happy_mothers_day.ui.theme.glassGradient
 import com.example.happy_mothers_day.ui.theme.RosePink
 import com.example.happy_mothers_day.ui.theme.RosePinkLight
 import com.example.happy_mothers_day.ui.theme.VinylBlack
@@ -68,7 +64,6 @@ fun PlayerScreen(
     onNavigateBack: () -> Unit,
     autoPlay: Boolean = false,
     audioUri: String? = null,
-    advancedUI: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -140,8 +135,7 @@ fun PlayerScreen(
 
     Box(
         modifier = modifier.fillMaxSize().background(
-            if (advancedUI) glassGradient(isDark = true)
-            else Brush.radialGradient(colors = listOf(VinylBlack.copy(alpha = 0.9f), Color(0xFF0D0D0D)))
+            Brush.radialGradient(colors = listOf(VinylBlack.copy(alpha = 0.9f), Color(0xFF0D0D0D)))
         )
     ) {
         if (isLandscape) {

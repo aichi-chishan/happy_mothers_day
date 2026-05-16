@@ -74,11 +74,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.example.happy_mothers_day.audio.AudioManager
 import com.example.happy_mothers_day.ui.components.CustomSlider
-import com.example.happy_mothers_day.ui.theme.GlassShimmer
-import com.example.happy_mothers_day.ui.theme.GlassUI
 import com.example.happy_mothers_day.ui.theme.DeepRose
-import com.example.happy_mothers_day.ui.theme.glassBackground
-import com.example.happy_mothers_day.ui.theme.glassGradient
 import com.example.happy_mothers_day.ui.theme.RosePink
 import com.example.happy_mothers_day.ui.theme.RosePinkLight
 import com.example.happy_mothers_day.ui.theme.SoftPinkBg
@@ -93,7 +89,6 @@ fun HomeScreen(
     onNavigateToPlayerUri: (String) -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToTagReader: () -> Unit,
-    advancedUI: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -129,8 +124,9 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    if (advancedUI) glassGradient(isDark = false)
-                    else Brush.verticalGradient(colors = listOf(SoftPinkBg, RosePinkLight, RosePinkLight.copy(alpha = 0.5f)))
+                    Brush.verticalGradient(
+                        colors = listOf(SoftPinkBg, RosePinkLight, RosePinkLight.copy(alpha = 0.5f))
+                    )
                 )
         )
 
@@ -193,9 +189,9 @@ fun HomeScreen(
         }
 
         if (isLandscape) {
-            LandscapeLayout(isNfcAvailable, isNfcEnabled, onNavigateToPlayer, miniVisible, advancedUI)
+            LandscapeLayout(isNfcAvailable, isNfcEnabled, onNavigateToPlayer, miniVisible)
         } else {
-            PortraitLayout(isNfcAvailable, isNfcEnabled, onNavigateToPlayer, miniVisible, advancedUI)
+            PortraitLayout(isNfcAvailable, isNfcEnabled, onNavigateToPlayer, miniVisible)
         }
 
         // Mini player — floating above bottom (compact in landscape)
@@ -209,7 +205,6 @@ fun HomeScreen(
                 position = miniPosition,
                 source = miniSource,
                 compact = isLandscape,
-                advancedUI = advancedUI,
                 onPlayPause = { AudioManager.togglePause(); miniPlaying = AudioManager.isPlaying },
                 onSeek = { AudioManager.seekToFraction(it); miniPosition = AudioManager.currentPositionMs },
                 onNavigateToPlayer = {
@@ -235,7 +230,6 @@ private fun MiniPlayer(
     position: Int,
     source: String?,
     compact: Boolean = false,
-    advancedUI: Boolean = false,
     onPlayPause: () -> Unit,
     onSeek: (Float) -> Unit,
     onNavigateToPlayer: () -> Unit
@@ -247,14 +241,16 @@ private fun MiniPlayer(
     val displayMs = if (seekDrag) (dragFraction * duration).toInt() else position
 
     Card(
-        modifier = (if (advancedUI) Modifier.fillMaxWidth().glassBackground(20.dp, 0.12f, 0.2f)
-                     else Modifier.fillMaxWidth().shadow(12.dp, RoundedCornerShape(20.dp)))
-            .clickable(enabled = !seekDrag, onClickLabel = "查看播放详情") { onNavigateToPlayer() },
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(12.dp, RoundedCornerShape(20.dp))
+            .clickable(
+                enabled = !seekDrag,
+                onClickLabel = "查看播放详情"
+            ) { onNavigateToPlayer() },
         shape = RoundedCornerShape(20.dp),
-        colors = if (advancedUI) CardDefaults.cardColors(containerColor = Color.Transparent)
-                 else CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.94f))
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.94f))
     ) {
-        Box {
         Column(modifier = Modifier.padding(horizontal = if (compact) 12.dp else 20.dp, vertical = if (compact) 6.dp else 12.dp)) {
             // Title row
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -322,8 +318,6 @@ private fun MiniPlayer(
                 )
             }
         }
-        if (advancedUI) GlassShimmer()
-    }
     }
 }
 
@@ -334,7 +328,7 @@ private fun formatMiniTime(ms: Int): String {
 }
 
 @Composable
-private fun PortraitLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNavigateToPlayer: () -> Unit, miniVisible: Boolean, advancedUI: Boolean) {
+private fun PortraitLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNavigateToPlayer: () -> Unit, miniVisible: Boolean) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -359,12 +353,12 @@ private fun PortraitLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNav
             }
             Spacer(modifier = Modifier.height(16.dp))
         }
-        NfcCard(isNfcAvailable, isNfcEnabled, advancedUI)
+        NfcCard(isNfcAvailable, isNfcEnabled)
     }
 }
 
 @Composable
-private fun LandscapeLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNavigateToPlayer: () -> Unit, miniVisible: Boolean, advancedUI: Boolean) {
+private fun LandscapeLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNavigateToPlayer: () -> Unit, miniVisible: Boolean) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -399,35 +393,24 @@ private fun LandscapeLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNa
             }
             // Right: NFC card
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                NfcCard(isNfcAvailable, isNfcEnabled, advancedUI)
+                NfcCard(isNfcAvailable, isNfcEnabled)
             }
         }
     }
 }
 
 @Composable
-private fun NfcCard(isNfcAvailable: Boolean, isNfcEnabled: Boolean, advancedUI: Boolean = false) {
-    Card(
-        modifier = if (advancedUI)
-            Modifier.fillMaxWidth().glassBackground(20.dp)
-        else
-            Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(20.dp)),
-        shape = RoundedCornerShape(20.dp),
-        colors = if (advancedUI) CardDefaults.cardColors(containerColor = Color.Transparent)
-                 else CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.85f))
-    ) {
-        Box {
-            Column(modifier = Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(imageVector = Icons.Filled.Nfc, contentDescription = "NFC", tint = if (isNfcAvailable && isNfcEnabled) RosePink else Color.Gray, modifier = Modifier.size(40.dp))
-                Spacer(modifier = Modifier.height(12.dp))
-                val (statusText, statusColor) = when {
-                    !isNfcAvailable -> "手机不支持NFC功能\n可通过右上角菜单播放音频" to Color.Gray
-                    !isNfcEnabled -> "NFC功能未开启\n请在设置中打开NFC" to WarmGold
-                    else -> "NFC已就绪\n将手机靠近线圈即可播放" to RosePink
-                }
-                Text(text = statusText, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium, color = statusColor), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+private fun NfcCard(isNfcAvailable: Boolean, isNfcEnabled: Boolean) {
+    Card(modifier = Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(20.dp)), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.85f))) {
+        Column(modifier = Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(imageVector = Icons.Filled.Nfc, contentDescription = "NFC", tint = if (isNfcAvailable && isNfcEnabled) RosePink else Color.Gray, modifier = Modifier.size(40.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+            val (statusText, statusColor) = when {
+                !isNfcAvailable -> "手机不支持NFC功能\n可通过右上角菜单播放音频" to Color.Gray
+                !isNfcEnabled -> "NFC功能未开启\n请在设置中打开NFC" to WarmGold
+                else -> "NFC已就绪\n将手机靠近线圈即可播放" to RosePink
             }
-            if (advancedUI) GlassShimmer()
+            Text(text = statusText, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium, color = statusColor), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
         }
     }
 }
