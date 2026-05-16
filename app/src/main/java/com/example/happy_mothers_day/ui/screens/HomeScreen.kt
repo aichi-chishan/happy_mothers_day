@@ -205,7 +205,7 @@ fun HomeScreen(
                 source = miniSource,
                 compact = isLandscape,
                 onPlayPause = { AudioManager.togglePause(); miniPlaying = AudioManager.isPlaying },
-                onSeek = { AudioManager.seekToFraction(it) },
+                onSeek = { AudioManager.seekToFraction(it); miniPosition = AudioManager.currentPositionMs },
                 onNavigateToPlayer = {
                     val uri = miniSource
                     if (uri != null) {
@@ -359,31 +359,41 @@ private fun PortraitLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNav
 
 @Composable
 private fun LandscapeLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNavigateToPlayer: () -> Unit, miniVisible: Boolean) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .padding(bottom = if (miniVisible) 90.dp else 0.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 20.dp, vertical = 4.dp)
+            .padding(bottom = if (miniVisible) 100.dp else 0.dp),
+        verticalArrangement = Arrangement.Center
     ) {
-        Column(modifier = Modifier.weight(1f).padding(start = 24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            Text("母亲节快乐", style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, fontSize = 28.sp, color = DeepRose), textAlign = TextAlign.Center)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("妈妈，我爱您", style = MaterialTheme.typography.titleLarge.copy(color = RosePink, fontWeight = FontWeight.Medium, fontSize = 18.sp), textAlign = TextAlign.Center)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text("Happy Mother's Day", style = MaterialTheme.typography.titleMedium.copy(color = RosePink.copy(alpha = 0.7f), fontSize = 14.sp), textAlign = TextAlign.Center)
-            Spacer(modifier = Modifier.height(24.dp))
-            if (!isNfcAvailable || !isNfcEnabled) {
-                Button(onClick = onNavigateToPlayer, modifier = Modifier.fillMaxWidth().height(40.dp), shape = RoundedCornerShape(20.dp), colors = ButtonDefaults.buttonColors(containerColor = RosePink)) {
-                    Icon(Icons.Filled.MusicNote, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("直接播放音频", fontWeight = FontWeight.Medium, fontSize = 14.sp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Left: text + button
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("母亲节快乐", style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, fontSize = 24.sp, color = DeepRose), textAlign = TextAlign.Center)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("妈妈，我爱您", style = MaterialTheme.typography.titleLarge.copy(color = RosePink, fontWeight = FontWeight.Medium, fontSize = 16.sp), textAlign = TextAlign.Center)
+                Spacer(modifier = Modifier.height(2.dp))
+                Text("Happy Mother's Day", style = MaterialTheme.typography.titleMedium.copy(color = RosePink.copy(alpha = 0.7f), fontSize = 12.sp), textAlign = TextAlign.Center)
+                if (!isNfcAvailable || !isNfcEnabled) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(onClick = onNavigateToPlayer, modifier = Modifier.fillMaxWidth().height(36.dp), shape = RoundedCornerShape(18.dp), colors = ButtonDefaults.buttonColors(containerColor = RosePink)) {
+                        Icon(Icons.Filled.MusicNote, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("直接播放音频", fontWeight = FontWeight.Medium, fontSize = 13.sp)
+                    }
                 }
             }
-        }
-        Spacer(modifier = Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f).padding(end = 24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            NfcCard(isNfcAvailable, isNfcEnabled)
+            Spacer(modifier = Modifier.width(12.dp))
+            // Right: NFC card
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                NfcCard(isNfcAvailable, isNfcEnabled)
+            }
         }
     }
 }

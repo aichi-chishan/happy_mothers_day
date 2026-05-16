@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,11 +69,13 @@ private fun rememberVinylRotation(
 
     LaunchedEffect(isPlaying, durationMs, isSeeking) {
         if (isSeeking) {
-            // Track seek position directly — direction follows drag naturally
-            rotation.snapTo(seekFraction * 360f)
+            // Continuously follow seek fraction with smooth animation
+            snapshotFlow { seekFraction }
+                .collect { fraction ->
+                    rotation.animateTo(fraction * 360f, tween<Float>(120, easing = LinearEasing))
+                }
         } else if (isPlaying) {
             val dur = durationMs.coerceIn(5000, 20000)
-            // Continuous clockwise rotation at fixed speed
             while (isActive) {
                 rotation.animateTo(rotation.value + 360f, tween<Float>(dur, easing = LinearEasing))
             }
