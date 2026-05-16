@@ -37,11 +37,16 @@ class MediaSessionManager(private val context: Context) {
     var audioCallback: AudioCallback? = null
 
     init {
-        mediaSession = MediaSession(context, "HappyMothersDaySession").apply {
-            setCallback(callback)
-            @Suppress("DEPRECATION")
-            setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS or MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS)
-            isActive = true
+        mediaSession = try {
+            MediaSession(context, "HappyMothersDaySession").apply {
+                setCallback(callback)
+                @Suppress("DEPRECATION")
+                setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS or MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS)
+                isActive = true
+            }
+        } catch (e: Exception) {
+            // HarmonyOS / older AOSP fallback
+            MediaSession(context, "HappyMothersDaySession")
         }
         createNotificationChannel()
     }

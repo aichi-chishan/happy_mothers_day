@@ -57,7 +57,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        try {
+            enableEdgeToEdge()
+        } catch (_: Exception) {
+            // Fallback for HarmonyOS / older AOSP
+        }
         nfcHelper = NfcHelper(this)
         mediaSessionManager = MediaSessionManager(this)
 
