@@ -32,7 +32,10 @@ import com.example.happy_mothers_day.ui.screens.NfcTagReaderScreen
 import com.example.happy_mothers_day.ui.screens.PlayerScreen
 import com.example.happy_mothers_day.ui.screens.SettingsScreen
 import com.example.happy_mothers_day.ui.theme.HappyMothersDayTheme
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import java.io.File
 
 /** User's specific NFC tag, auto-plays default audio without learning */
 private const val HARDCODED_DEFAULT_TAG_ID = "04669e70d32a81"
@@ -142,6 +145,23 @@ fun MainApp(
 
     val isNfcAvailable = remember { nfcHelper.isNfcSupported() }
     var isNfcEnabled by remember { mutableStateOf(nfcHelper.isNfcAvailable()) }
+
+    // Pre-populate built-in tag 2EA5892C → FLAC audio on first launch
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            if (tagStorage.getMapping("2EA5892C") == null) {
+                val audioDir = File(context.filesDir, "audio")
+                audioDir.mkdirs()
+                val dest = File(audioDir, "a_mild_tale_untold.flac")
+                if (!dest.exists()) {
+                    context.resources.openRawResource(R.raw.a_mild_tale_untold).use { input ->
+                        dest.outputStream().use { output -> input.copyTo(output) }
+                    }
+                }
+                tagStorage.saveMapping("2EA5892C", dest.absolutePath, "a_mild_tale_untold.flac")
+            }
+        }
+    }
 
     // Refresh NFC status on every resume + ensure saved default tag is recognized
     DisposableEffect(lifecycleOwner) {

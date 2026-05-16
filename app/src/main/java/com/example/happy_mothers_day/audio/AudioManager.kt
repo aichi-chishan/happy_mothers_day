@@ -23,7 +23,7 @@ object AudioManager {
 
     var currentSourcePath: String? = null
         private set
-    var currentFileName: String = "默认音乐"
+    var currentFileName: String = "My mother is the best in the world"
         private set
     var currentPositionMs: Int = 0
         private set
@@ -64,7 +64,7 @@ object AudioManager {
                     m
                 } else { hasError = true; null }
             } else {
-                currentFileName = "默认音乐"
+                currentFileName = "My mother is the best in the world"
                 currentSourcePath = null
                 val m = MediaPlayer.create(context, R.raw.mothers_day_audio)
                 if (m != null) {
@@ -145,6 +145,6 @@ object AudioManager {
         currentPositionMs = 0
         hasError = false
         currentSourcePath = null
-        currentFileName = "默认音乐"
+        currentFileName = "My mother is the best in the world"
     }
 }
