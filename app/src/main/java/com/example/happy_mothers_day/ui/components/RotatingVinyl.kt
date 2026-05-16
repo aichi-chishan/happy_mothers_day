@@ -69,10 +69,10 @@ private fun rememberVinylRotation(
 
     LaunchedEffect(isPlaying, durationMs, isSeeking) {
         if (isSeeking) {
-            // Continuously follow seek fraction with smooth animation
+            // Track seek fraction directly — at 60fps updates, snapTo blends into smooth motion
             snapshotFlow { seekFraction }
                 .collect { fraction ->
-                    rotation.animateTo(fraction * 360f, tween<Float>(120, easing = LinearEasing))
+                    rotation.snapTo(fraction * 360f)
                 }
         } else if (isPlaying) {
             val dur = durationMs.coerceIn(5000, 20000)

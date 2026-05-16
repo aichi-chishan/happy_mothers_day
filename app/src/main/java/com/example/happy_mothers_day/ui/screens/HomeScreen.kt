@@ -196,7 +196,7 @@ fun HomeScreen(
         // Mini player — floating above bottom (compact in landscape)
         if (miniVisible) {
             Box(modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter)
-                .padding(horizontal = if (isLandscape) 16.dp else 24.dp, vertical = if (isLandscape) 2.dp else 12.dp).zIndex(99f)) {
+                .padding(horizontal = if (isLandscape) 16.dp else 24.dp, vertical = if (isLandscape) 8.dp else 12.dp).zIndex(99f)) {
                 MiniPlayer(
                 fileName = miniFileName,
                 isPlaying = miniPlaying,
@@ -363,7 +363,7 @@ private fun LandscapeLayout(isNfcAvailable: Boolean, isNfcEnabled: Boolean, onNa
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 20.dp, vertical = 4.dp)
-            .padding(bottom = if (miniVisible) 100.dp else 0.dp),
+            .padding(bottom = if (miniVisible) 65.dp else 0.dp),
         verticalArrangement = Arrangement.Center
     ) {
         Row(
