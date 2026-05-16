@@ -1,6 +1,7 @@
 package com.example.happy_mothers_day.ui.screens
 
 import android.content.res.Configuration
+import android.graphics.Bitmap
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -45,15 +47,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import com.example.happy_mothers_day.R
 import com.example.happy_mothers_day.audio.AudioManager
 import com.example.happy_mothers_day.ui.components.CustomSlider
 import com.example.happy_mothers_day.ui.components.RotatingVinyl
+import com.example.happy_mothers_day.util.AlbumArtExtractor
 import com.example.happy_mothers_day.ui.theme.RosePink
 import com.example.happy_mothers_day.ui.theme.RosePinkLight
 import com.example.happy_mothers_day.ui.theme.VinylBlack
@@ -75,6 +80,8 @@ fun PlayerScreen(
     var currentPosition by remember { mutableIntStateOf(0) }
     var seekPosition by remember { mutableFloatStateOf(0f) }
     var isSeeking by remember { mutableStateOf(false) }
+    var repeatMode by remember { mutableStateOf(AudioManager.repeatMode) }
+    var albumArt by remember { mutableStateOf<Bitmap?>(null) }
 
     DisposableEffect(Unit) {
         AudioManager.onStateChanged = {
@@ -83,6 +90,13 @@ fun PlayerScreen(
             duration = AudioManager.duration
         }
         onDispose { AudioManager.onStateChanged = null }
+    }
+
+    // Load album art for custom audio
+    LaunchedEffect(audioUri) {
+        albumArt = if (!audioUri.isNullOrEmpty()) {
+            AlbumArtExtractor.extract(audioUri)
+        } else null
     }
 
     // Start or resume playback — skip restart if same source already playing
@@ -138,10 +152,14 @@ fun PlayerScreen(
             Brush.radialGradient(colors = listOf(VinylBlack.copy(alpha = 0.9f), Color(0xFF0D0D0D)))
         )
     ) {
+        val onToggleRepeat: () -> Unit = {
+            repeatMode = !repeatMode
+            AudioManager.repeatMode = repeatMode
+        }
         if (isLandscape) {
-            LandscapePlayer(isPlaying, hasError, audioUri, duration, currentPosition, seekPosition, isSeeking, onPlayPause, onSeek, onSeekEnd)
+            LandscapePlayer(isPlaying, hasError, audioUri, duration, currentPosition, seekPosition, isSeeking, onPlayPause, onSeek, onSeekEnd, repeatMode, onToggleRepeat, albumArt)
         } else {
-            PortraitPlayer(isPlaying, hasError, audioUri, duration, currentPosition, seekPosition, isSeeking, onPlayPause, onSeek, onSeekEnd)
+            PortraitPlayer(isPlaying, hasError, audioUri, duration, currentPosition, seekPosition, isSeeking, onPlayPause, onSeek, onSeekEnd, repeatMode, onToggleRepeat, albumArt)
         }
 
         IconButton(
@@ -158,7 +176,8 @@ fun PlayerScreen(
 private fun PortraitPlayer(
     isPlaying: Boolean, hasError: Boolean, audioUri: String?,
     duration: Int, currentPosition: Int, seekPosition: Float, isSeeking: Boolean,
-    onPlayPause: () -> Unit, onSeek: (Float) -> Unit, onSeekEnd: () -> Unit
+    onPlayPause: () -> Unit, onSeek: (Float) -> Unit, onSeekEnd: () -> Unit,
+    repeatMode: Boolean, onToggleRepeat: () -> Unit, albumArt: Bitmap?
 ) {
     Column(
         modifier = Modifier.fillMaxSize().padding(horizontal = 32.dp),
@@ -169,7 +188,7 @@ private fun PortraitPlayer(
         Spacer(modifier = Modifier.height(8.dp))
         Text("For My Dear Mother", style = MaterialTheme.typography.bodyMedium.copy(color = RosePinkLight.copy(alpha = 0.6f), fontSize = 14.sp), textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(32.dp))
-        RotatingVinyl(isPlaying = isPlaying, rotationDurationMs = if (isSeeking) 5000 else 20000, seekFraction = seekPosition, isSeeking = isSeeking, size = 220.dp)
+        RotatingVinyl(isPlaying = isPlaying, rotationDurationMs = if (isSeeking) 5000 else 20000, seekFraction = seekPosition, isSeeking = isSeeking, centerBitmap = albumArt, size = 220.dp)
         Spacer(modifier = Modifier.height(32.dp))
         ProgressBar(duration, currentPosition, seekPosition, isSeeking, onSeek, onSeekEnd)
         Spacer(modifier = Modifier.height(16.dp))
@@ -180,8 +199,18 @@ private fun PortraitPlayer(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
         }
-        FloatingActionButton(onClick = onPlayPause, modifier = Modifier.size(64.dp), containerColor = RosePink, contentColor = Color.White, shape = CircleShape) {
-            Icon(imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, contentDescription = if (isPlaying) "暂停" else "播放", modifier = Modifier.size(32.dp))
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            // Repeat toggle
+            IconButton(onClick = onToggleRepeat, modifier = Modifier.size(44.dp)) {
+                Image(
+                    painter = painterResource(id = if (repeatMode) R.drawable.ic_repeat_on else R.drawable.ic_repeat_off),
+                    contentDescription = if (repeatMode) "单曲循环:开" else "单曲循环:关",
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+            FloatingActionButton(onClick = onPlayPause, modifier = Modifier.size(64.dp), containerColor = RosePink, contentColor = Color.White, shape = CircleShape) {
+                Icon(imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, contentDescription = if (isPlaying) "暂停" else "播放", modifier = Modifier.size(32.dp))
+            }
         }
     }
 }
@@ -190,11 +219,12 @@ private fun PortraitPlayer(
 private fun LandscapePlayer(
     isPlaying: Boolean, hasError: Boolean, audioUri: String?,
     duration: Int, currentPosition: Int, seekPosition: Float, isSeeking: Boolean,
-    onPlayPause: () -> Unit, onSeek: (Float) -> Unit, onSeekEnd: () -> Unit
+    onPlayPause: () -> Unit, onSeek: (Float) -> Unit, onSeekEnd: () -> Unit,
+    repeatMode: Boolean, onToggleRepeat: () -> Unit, albumArt: Bitmap?
 ) {
     Row(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            RotatingVinyl(isPlaying = isPlaying, rotationDurationMs = if (isSeeking) 5000 else 20000, seekFraction = seekPosition, isSeeking = isSeeking, size = 240.dp)
+            RotatingVinyl(isPlaying = isPlaying, rotationDurationMs = if (isSeeking) 5000 else 20000, seekFraction = seekPosition, isSeeking = isSeeking, centerBitmap = albumArt, size = 240.dp)
         }
         Column(modifier = Modifier.weight(1f).padding(start = 8.dp, end = 8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             Text("献给妈妈", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold, color = RosePinkLight), textAlign = TextAlign.Center)
@@ -206,8 +236,17 @@ private fun LandscapePlayer(
             AnimatedVisibility(visible = hasError, enter = fadeIn(), exit = fadeOut()) {
                 Text(text = if (audioUri.isNullOrEmpty()) "音频文件缺失" else "音频文件无法播放", style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFFB0B0B0), textAlign = TextAlign.Center), modifier = Modifier.padding(bottom = 4.dp))
             }
-            FloatingActionButton(onClick = onPlayPause, modifier = Modifier.size(56.dp), containerColor = RosePink, contentColor = Color.White, shape = CircleShape) {
-                Icon(imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, contentDescription = if (isPlaying) "暂停" else "播放", modifier = Modifier.size(28.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                IconButton(onClick = onToggleRepeat, modifier = Modifier.size(40.dp)) {
+                    Image(
+                        painter = painterResource(id = if (repeatMode) R.drawable.ic_repeat_on else R.drawable.ic_repeat_off),
+                        contentDescription = if (repeatMode) "单曲循环:开" else "单曲循环:关",
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                FloatingActionButton(onClick = onPlayPause, modifier = Modifier.size(56.dp), containerColor = RosePink, contentColor = Color.White, shape = CircleShape) {
+                    Icon(imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, contentDescription = if (isPlaying) "暂停" else "播放", modifier = Modifier.size(28.dp))
+                }
             }
         }
     }

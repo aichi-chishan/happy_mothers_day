@@ -22,6 +22,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
@@ -45,6 +46,7 @@ fun RotatingVinyl(
     rotationDurationMs: Int = 20000,
     seekFraction: Float = 0f,
     isSeeking: Boolean = false,
+    centerBitmap: android.graphics.Bitmap? = null,
     modifier: Modifier = Modifier
 ) {
     val rotation = rememberVinylRotation(isPlaying, rotationDurationMs, seekFraction, isSeeking)
@@ -53,12 +55,21 @@ fun RotatingVinyl(
         Canvas(modifier = Modifier.fillMaxSize().rotate(rotation)) {
             drawVinylDisc(size.toPx())
         }
-        Image(
-            painter = painterResource(id = R.drawable.vinyl_center),
-            contentDescription = "照片",
-            modifier = Modifier.size(size * 0.58f).clip(CircleShape).rotate(rotation),
-            contentScale = ContentScale.Crop
-        )
+        if (centerBitmap != null) {
+            Image(
+                bitmap = centerBitmap.asImageBitmap(),
+                contentDescription = "专辑封面",
+                modifier = Modifier.size(size * 0.58f).clip(CircleShape).rotate(rotation),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Image(
+                painter = painterResource(id = R.drawable.vinyl_center),
+                contentDescription = "照片",
+                modifier = Modifier.size(size * 0.58f).clip(CircleShape).rotate(rotation),
+                contentScale = ContentScale.Crop
+            )
+        }
     }
 }
 

@@ -30,6 +30,7 @@ object AudioManager {
 
     var onStateChanged: (() -> Unit)? = null
     var mediaCallback: MediaCallback? = null
+    var repeatMode: Boolean = false
 
     interface MediaCallback {
         fun onPlay(durationMs: Int)
@@ -60,7 +61,14 @@ object AudioManager {
                     val m = MediaPlayer()
                     m.setDataSource(sourcePath)
                     m.prepare()
-                    m.setOnCompletionListener { this@AudioManager.isPlaying = false; notifyChanged() }
+                    val mpForLambda = m
+                    m.setOnCompletionListener {
+                        if (this@AudioManager.repeatMode) {
+                            try { mpForLambda.seekTo(0); mpForLambda.start() } catch (_: Exception) { }
+                        } else {
+                            this@AudioManager.isPlaying = false; notifyChanged()
+                        }
+                    }
                     m
                 } else { hasError = true; null }
             } else {
@@ -68,7 +76,14 @@ object AudioManager {
                 currentSourcePath = null
                 val m = MediaPlayer.create(context, R.raw.mothers_day_audio)
                 if (m != null) {
-                    m.setOnCompletionListener { this@AudioManager.isPlaying = false; notifyChanged() }
+                    val mpForLambda = m
+                    m.setOnCompletionListener {
+                        if (this@AudioManager.repeatMode) {
+                            try { mpForLambda.seekTo(0); mpForLambda.start() } catch (_: Exception) { }
+                        } else {
+                            this@AudioManager.isPlaying = false; notifyChanged()
+                        }
+                    }
                     m
                 } else { hasError = true; null }
             }
