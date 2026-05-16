@@ -18,7 +18,16 @@
       "Bash(git revert *)",
       "Bash(cp \"My mother is the best in the world.mp3\" \"app/src/main/res/raw/mothers_day_audio.mp3\")",
       "Bash(mv \"app/src/main/res/raw/mothers_day_audio.flac\" \"app/src/main/res/raw/a_mild_tale_untold.flac\")",
-      "Bash(rm \"My mother is the best in the world.mp3\")"
+      "Bash(rm \"My mother is the best in the world.mp3\")",
+      "Bash(rm -f mothersday.jks)",
+      "Bash(keytool -genkey -v -keystore mothersday.jks -alias mothersday -keyalg RSA -keysize 2048 -validity 10000 -storepass mothersday -keypass mothersday -dname \"CN=Happy Mothers Day, OU=Dev, O=Personal, L=City, ST=State, C=CN\")",
+      "Bash(\"E:/APP/java/bin/keytool\" -genkey -v -keystore mothersday.jks -alias mothersday -keyalg RSA -keysize 2048 -validity 10000 -storepass mothersday -keypass mothersday -dname \"CN=Happy Mothers Day, OU=Dev, O=Personal, L=City, ST=State, C=CN\")",
+      "Bash(JAVA_HOME=\"E:/APP/java\" ./gradlew assembleRelease)",
+      "Bash(file app/src/main/res/drawable-nodpi/vinyl_center.png)",
+      "Bash(ls -la app/src/main/res/drawable-nodpi/)",
+      "Bash(git show *)",
+      "Read(//tmp/**)",
+      "Bash(python3 -c ' *)"
     ]
   }
 }
